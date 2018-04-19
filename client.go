@@ -19,10 +19,10 @@ var log = logging.Logger("rendezvous")
 
 type Rendezvous interface {
 	RegisterOnce(ctx context.Context, ns string, ttl int) error
-	Register(ctx context.Context, ns string) error
+	Register(ctx context.Context, ns string, E func(error)) error
 	Unregister(ctx context.Context, ns string) error
 	DiscoverOnce(ctx context.Context, ns string, limit int, cookie []byte) ([]pstore.PeerInfo, []byte, error)
-	Discover(ctx context.Context, ns string) (<-chan pstore.PeerInfo, error)
+	Discover(ctx context.Context, ns string, E func(error)) (<-chan pstore.PeerInfo, error)
 }
 
 func NewRendezvousClient(host host.Host, rp peer.ID) Rendezvous {
@@ -75,17 +75,17 @@ func (cli *client) registerOnce(ctx context.Context, ns string, ttl int, s inet.
 	return nil
 }
 
-func (cli *client) Register(ctx context.Context, ns string) error {
+func (cli *client) Register(ctx context.Context, ns string, E func(error)) error {
 	s, err := cli.host.NewStream(ctx, cli.rp, RendezvousProto)
 	if err != nil {
 		return err
 	}
 
-	go cli.doRegister(ctx, ns, s)
+	go cli.doRegister(ctx, ns, E, s)
 	return nil
 }
 
-func (cli *client) doRegister(ctx context.Context, ns string, s inet.Stream) {
+func (cli *client) doRegister(ctx context.Context, ns string, E func(error), s inet.Stream) {
 	const ttl = 2 * 3600 // 2hr
 	const refresh = ttl - 30
 
@@ -94,6 +94,9 @@ func (cli *client) doRegister(ctx context.Context, ns string, s inet.Stream) {
 		err := cli.registerOnce(ctx, ns, ttl, s)
 		if err != nil {
 			log.Errorf("Error registering: %s", err.Error())
+			if E != nil {
+				go E(err)
+			}
 			return
 		}
 
@@ -161,18 +164,18 @@ func (cli *client) discoverOnce(ctx context.Context, ns string, limit int, cooki
 	return pinfos, res.GetDiscoverResponse().GetCookie(), nil
 }
 
-func (cli *client) Discover(ctx context.Context, ns string) (<-chan pstore.PeerInfo, error) {
+func (cli *client) Discover(ctx context.Context, ns string, E func(error)) (<-chan pstore.PeerInfo, error) {
 	s, err := cli.host.NewStream(ctx, cli.rp, RendezvousProto)
 	if err != nil {
 		return nil, err
 	}
 
 	ch := make(chan pstore.PeerInfo)
-	go cli.doDiscover(ctx, ns, s, ch)
+	go cli.doDiscover(ctx, ns, E, s, ch)
 	return ch, nil
 }
 
-func (cli *client) doDiscover(ctx context.Context, ns string, s inet.Stream, ch chan pstore.PeerInfo) {
+func (cli *client) doDiscover(ctx context.Context, ns string, E func(error), s inet.Stream, ch chan pstore.PeerInfo) {
 	defer s.Close()
 	defer close(ch)
 
@@ -187,6 +190,9 @@ func (cli *client) doDiscover(ctx context.Context, ns string, s inet.Stream, ch 
 		pi, cookie, err = cli.discoverOnce(ctx, ns, batch, cookie, s)
 		if err != nil {
 			log.Errorf("Error in discovery: %s", err.Error())
+			if E != nil {
+				go E(err)
+			}
 			return
 		}
 
