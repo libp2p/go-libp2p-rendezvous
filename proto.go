@@ -44,7 +44,7 @@ func newUnregisterMessage(ns string, pid peer.ID) *pb.Message {
 	return msg
 }
 
-func newDiscoverMessage(ns string, limit int) *pb.Message {
+func newDiscoverMessage(ns string, limit int, cookie []byte) *pb.Message {
 	msg := new(pb.Message)
 	msg.Type = pb.Message_DISCOVER.Enum()
 	msg.Discover = new(pb.Message_Discover)
@@ -54,6 +54,9 @@ func newDiscoverMessage(ns string, limit int) *pb.Message {
 	if limit > 0 {
 		limit64 := int64(limit)
 		msg.Discover.Limit = &limit64
+	}
+	if cookie != nil {
+		msg.Discover.Cookie = cookie
 	}
 	return msg
 }
