@@ -19,10 +19,10 @@ var log = logging.Logger("rendezvous")
 
 type Rendezvous interface {
 	RegisterOnce(ctx context.Context, ns string, ttl int) error
-	Register(ctx context.Context, ns string, E func(error)) error
+	Register(ctx context.Context, ns string, opts ...interface{}) error
 	Unregister(ctx context.Context, ns string) error
 	DiscoverOnce(ctx context.Context, ns string, limit int, cookie []byte) ([]pstore.PeerInfo, []byte, error)
-	Discover(ctx context.Context, ns string, E func(error)) (<-chan pstore.PeerInfo, error)
+	Discover(ctx context.Context, ns string, opts ...interface{}) (<-chan pstore.PeerInfo, error)
 }
 
 func NewRendezvousClient(host host.Host, rp peer.ID) Rendezvous {
@@ -75,7 +75,19 @@ func (cli *client) registerOnce(ctx context.Context, ns string, ttl int, s inet.
 	return nil
 }
 
-func (cli *client) Register(ctx context.Context, ns string, E func(error)) error {
+func (cli *client) Register(ctx context.Context, ns string, opts ...interface{}) error {
+	var E func(error)
+
+	for _, opt := range opts {
+		switch o := opt.(type) {
+		case func(error):
+			E = o
+
+		default:
+			return fmt.Errorf("Unexpected option: %v", opt)
+		}
+	}
+
 	s, err := cli.host.NewStream(ctx, cli.rp, RendezvousProto)
 	if err != nil {
 		return err
@@ -164,7 +176,19 @@ func (cli *client) discoverOnce(ctx context.Context, ns string, limit int, cooki
 	return pinfos, res.GetDiscoverResponse().GetCookie(), nil
 }
 
-func (cli *client) Discover(ctx context.Context, ns string, E func(error)) (<-chan pstore.PeerInfo, error) {
+func (cli *client) Discover(ctx context.Context, ns string, opts ...interface{}) (<-chan pstore.PeerInfo, error) {
+	var E func(error)
+
+	for _, opt := range opts {
+		switch o := opt.(type) {
+		case func(error):
+			E = o
+
+		default:
+			return nil, fmt.Errorf("Unexpected option: %v", opt)
+		}
+	}
+
 	s, err := cli.host.NewStream(ctx, cli.rp, RendezvousProto)
 	if err != nil {
 		return nil, err
