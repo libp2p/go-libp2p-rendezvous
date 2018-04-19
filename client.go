@@ -20,8 +20,8 @@ var log = logging.Logger("rendezvous")
 type Rendezvous interface {
 	Register(ctx context.Context, ns string, ttl int) error
 	Unregister(ctx context.Context, ns string) error
-	Discover(ctx context.Context, ns string, limit int) ([]pstore.PeerInfo, error)
-	DiscoverAsync(ctx context.Context, ns string) (<-chan pstore.PeerInfo, error)
+	DiscoverOnce(ctx context.Context, ns string, limit int) ([]pstore.PeerInfo, error)
+	Discover(ctx context.Context, ns string) (<-chan pstore.PeerInfo, error)
 }
 
 func NewRendezvousClient(host host.Host, rp peer.ID) Rendezvous {
@@ -82,7 +82,7 @@ func (cli *client) Unregister(ctx context.Context, ns string) error {
 	return w.WriteMsg(req)
 }
 
-func (cli *client) Discover(ctx context.Context, ns string, limit int) ([]pstore.PeerInfo, error) {
+func (cli *client) DiscoverOnce(ctx context.Context, ns string, limit int) ([]pstore.PeerInfo, error) {
 	s, err := cli.host.NewStream(ctx, cli.rp, RendezvousProto)
 	if err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func (cli *client) Discover(ctx context.Context, ns string, limit int) ([]pstore
 	return pinfos, nil
 }
 
-func (cli *client) DiscoverAsync(ctx context.Context, ns string) (<-chan pstore.PeerInfo, error) {
+func (cli *client) Discover(ctx context.Context, ns string) (<-chan pstore.PeerInfo, error) {
 	s, err := cli.host.NewStream(ctx, cli.rp, RendezvousProto)
 	if err != nil {
 		return nil, err
