@@ -66,7 +66,7 @@ func (cli *client) Register(ctx context.Context, ns string, ttl int) error {
 
 	status := res.GetRegisterResponse().GetStatus()
 	if status != pb.Message_OK {
-		return fmt.Errorf("Registration failure: %s", status.String())
+		return RegistrationError(status)
 	}
 
 	return nil
