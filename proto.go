@@ -16,7 +16,7 @@ const (
 type RegistrationError pb.Message_RegisterStatus
 
 func (e RegistrationError) Error() string {
-	return pb.Message_RegisterStatus(e).String()
+	return "Registration error: " + pb.Message_RegisterStatus(e).String()
 }
 
 func newRegisterMessage(ns string, pi pstore.PeerInfo, ttl int) *pb.Message {
