@@ -105,7 +105,7 @@ func (cli *client) doRegister(ctx context.Context, ns string, E func(error), s i
 	for {
 		err := cli.registerOnce(ctx, ns, ttl, s)
 		if err != nil {
-			log.Errorf("Error registering: %s", err.Error())
+			log.Errorf("Error registering [%s]: %s", ns, err.Error())
 			if E != nil {
 				go E(err)
 			}
@@ -213,7 +213,7 @@ func (cli *client) doDiscover(ctx context.Context, ns string, E func(error), s i
 	for {
 		pi, cookie, err = cli.discoverOnce(ctx, ns, batch, cookie, s)
 		if err != nil {
-			log.Errorf("Error in discovery: %s", err.Error())
+			log.Errorf("Error in discovery [%s]: %s", ns, err.Error())
 			if E != nil {
 				go E(err)
 			}
