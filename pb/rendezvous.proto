@@ -24,6 +24,7 @@ message Message {
     OK = 0;
     E_INVALID_NAMESPACE = 100;
     E_INVALID_PEER_INFO = 101;
+    E_INVALID_TTL       = 102;
     E_NOT_AUTHORIZED    = 200;
   }
 

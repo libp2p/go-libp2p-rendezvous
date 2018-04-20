@@ -70,6 +70,7 @@ const (
 	Message_OK                  Message_RegisterStatus = 0
 	Message_E_INVALID_NAMESPACE Message_RegisterStatus = 100
 	Message_E_INVALID_PEER_INFO Message_RegisterStatus = 101
+	Message_E_INVALID_TTL       Message_RegisterStatus = 102
 	Message_E_NOT_AUTHORIZED    Message_RegisterStatus = 200
 )
 
@@ -77,12 +78,14 @@ var Message_RegisterStatus_name = map[int32]string{
 	0:   "OK",
 	100: "E_INVALID_NAMESPACE",
 	101: "E_INVALID_PEER_INFO",
+	102: "E_INVALID_TTL",
 	200: "E_NOT_AUTHORIZED",
 }
 var Message_RegisterStatus_value = map[string]int32{
 	"OK": 0,
 	"E_INVALID_NAMESPACE": 100,
 	"E_INVALID_PEER_INFO": 101,
+	"E_INVALID_TTL":       102,
 	"E_NOT_AUTHORIZED":    200,
 }
 
