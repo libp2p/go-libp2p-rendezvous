@@ -64,45 +64,51 @@ func (x *Message_MessageType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type Message_RegisterStatus int32
+type Message_ResponseStatus int32
 
 const (
-	Message_OK                  Message_RegisterStatus = 0
-	Message_E_INVALID_NAMESPACE Message_RegisterStatus = 100
-	Message_E_INVALID_PEER_INFO Message_RegisterStatus = 101
-	Message_E_INVALID_TTL       Message_RegisterStatus = 102
-	Message_E_NOT_AUTHORIZED    Message_RegisterStatus = 200
+	Message_OK                  Message_ResponseStatus = 0
+	Message_E_INVALID_NAMESPACE Message_ResponseStatus = 100
+	Message_E_INVALID_PEER_INFO Message_ResponseStatus = 101
+	Message_E_INVALID_TTL       Message_ResponseStatus = 102
+	Message_E_INVALID_COOKIE    Message_ResponseStatus = 103
+	Message_E_NOT_AUTHORIZED    Message_ResponseStatus = 200
+	Message_E_INTERNAL_ERROR    Message_ResponseStatus = 300
 )
 
-var Message_RegisterStatus_name = map[int32]string{
+var Message_ResponseStatus_name = map[int32]string{
 	0:   "OK",
 	100: "E_INVALID_NAMESPACE",
 	101: "E_INVALID_PEER_INFO",
 	102: "E_INVALID_TTL",
+	103: "E_INVALID_COOKIE",
 	200: "E_NOT_AUTHORIZED",
+	300: "E_INTERNAL_ERROR",
 }
-var Message_RegisterStatus_value = map[string]int32{
+var Message_ResponseStatus_value = map[string]int32{
 	"OK": 0,
 	"E_INVALID_NAMESPACE": 100,
 	"E_INVALID_PEER_INFO": 101,
 	"E_INVALID_TTL":       102,
+	"E_INVALID_COOKIE":    103,
 	"E_NOT_AUTHORIZED":    200,
+	"E_INTERNAL_ERROR":    300,
 }
 
-func (x Message_RegisterStatus) Enum() *Message_RegisterStatus {
-	p := new(Message_RegisterStatus)
+func (x Message_ResponseStatus) Enum() *Message_ResponseStatus {
+	p := new(Message_ResponseStatus)
 	*p = x
 	return p
 }
-func (x Message_RegisterStatus) String() string {
-	return proto.EnumName(Message_RegisterStatus_name, int32(x))
+func (x Message_ResponseStatus) String() string {
+	return proto.EnumName(Message_ResponseStatus_name, int32(x))
 }
-func (x *Message_RegisterStatus) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(Message_RegisterStatus_value, data, "Message_RegisterStatus")
+func (x *Message_ResponseStatus) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Message_ResponseStatus_value, data, "Message_ResponseStatus")
 	if err != nil {
 		return err
 	}
-	*x = Message_RegisterStatus(value)
+	*x = Message_ResponseStatus(value)
 	return nil
 }
 
@@ -219,7 +225,8 @@ func (m *Message_Register) GetTtl() int64 {
 }
 
 type Message_RegisterResponse struct {
-	Status           *Message_RegisterStatus `protobuf:"varint,1,opt,name=status,enum=rendezvous.pb.Message_RegisterStatus" json:"status,omitempty"`
+	Status           *Message_ResponseStatus `protobuf:"varint,1,opt,name=status,enum=rendezvous.pb.Message_ResponseStatus" json:"status,omitempty"`
+	StatusText       *string                 `protobuf:"bytes,2,opt,name=statusText" json:"statusText,omitempty"`
 	XXX_unrecognized []byte                  `json:"-"`
 }
 
@@ -227,11 +234,18 @@ func (m *Message_RegisterResponse) Reset()         { *m = Message_RegisterRespon
 func (m *Message_RegisterResponse) String() string { return proto.CompactTextString(m) }
 func (*Message_RegisterResponse) ProtoMessage()    {}
 
-func (m *Message_RegisterResponse) GetStatus() Message_RegisterStatus {
+func (m *Message_RegisterResponse) GetStatus() Message_ResponseStatus {
 	if m != nil && m.Status != nil {
 		return *m.Status
 	}
 	return Message_OK
+}
+
+func (m *Message_RegisterResponse) GetStatusText() string {
+	if m != nil && m.StatusText != nil {
+		return *m.StatusText
+	}
+	return ""
 }
 
 type Message_Unregister struct {
@@ -291,9 +305,11 @@ func (m *Message_Discover) GetCookie() []byte {
 }
 
 type Message_DiscoverResponse struct {
-	Registrations    []*Message_Register `protobuf:"bytes,1,rep,name=registrations" json:"registrations,omitempty"`
-	Cookie           []byte              `protobuf:"bytes,2,opt,name=cookie" json:"cookie,omitempty"`
-	XXX_unrecognized []byte              `json:"-"`
+	Registrations    []*Message_Register     `protobuf:"bytes,1,rep,name=registrations" json:"registrations,omitempty"`
+	Cookie           []byte                  `protobuf:"bytes,2,opt,name=cookie" json:"cookie,omitempty"`
+	Status           *Message_ResponseStatus `protobuf:"varint,3,opt,name=status,enum=rendezvous.pb.Message_ResponseStatus" json:"status,omitempty"`
+	StatusText       *string                 `protobuf:"bytes,4,opt,name=statusText" json:"statusText,omitempty"`
+	XXX_unrecognized []byte                  `json:"-"`
 }
 
 func (m *Message_DiscoverResponse) Reset()         { *m = Message_DiscoverResponse{} }
@@ -314,6 +330,20 @@ func (m *Message_DiscoverResponse) GetCookie() []byte {
 	return nil
 }
 
+func (m *Message_DiscoverResponse) GetStatus() Message_ResponseStatus {
+	if m != nil && m.Status != nil {
+		return *m.Status
+	}
+	return Message_OK
+}
+
+func (m *Message_DiscoverResponse) GetStatusText() string {
+	if m != nil && m.StatusText != nil {
+		return *m.StatusText
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*Message)(nil), "rendezvous.pb.Message")
 	proto.RegisterType((*Message_PeerInfo)(nil), "rendezvous.pb.Message.PeerInfo")
@@ -323,5 +353,5 @@ func init() {
 	proto.RegisterType((*Message_Discover)(nil), "rendezvous.pb.Message.Discover")
 	proto.RegisterType((*Message_DiscoverResponse)(nil), "rendezvous.pb.Message.DiscoverResponse")
 	proto.RegisterEnum("rendezvous.pb.Message_MessageType", Message_MessageType_name, Message_MessageType_value)
-	proto.RegisterEnum("rendezvous.pb.Message_RegisterStatus", Message_RegisterStatus_name, Message_RegisterStatus_value)
+	proto.RegisterEnum("rendezvous.pb.Message_ResponseStatus", Message_ResponseStatus_name, Message_ResponseStatus_value)
 }
