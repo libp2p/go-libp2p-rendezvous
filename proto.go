@@ -1,6 +1,8 @@
 package rendezvous
 
 import (
+	"fmt"
+
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -13,10 +15,13 @@ const (
 	RendezvousProto = protocol.ID("/rendezvous/1.0.0")
 )
 
-type RegistrationError pb.Message_RegisterStatus
+type RendezvousError struct {
+	Status pb.Message_ResponseStatus
+	Text   string
+}
 
-func (e RegistrationError) Error() string {
-	return "Registration error: " + pb.Message_RegisterStatus(e).String()
+func (e RendezvousError) Error() string {
+	return fmt.Sprintf("Rendezvous error: %s (%s)", e.Text, pb.Message_ResponseStatus(e.Status).String())
 }
 
 func newRegisterMessage(ns string, pi pstore.PeerInfo, ttl int) *pb.Message {

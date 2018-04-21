@@ -66,7 +66,7 @@ func (cli *client) Register(ctx context.Context, ns string, ttl int) error {
 
 	status := res.GetRegisterResponse().GetStatus()
 	if status != pb.Message_OK {
-		return RegistrationError(status)
+		return RendezvousError{Status: status, Text: res.GetRegisterResponse().GetStatusText()}
 	}
 
 	return nil
@@ -140,6 +140,11 @@ func discoverQuery(ns string, limit int, cookie []byte, r ggio.Reader, w ggio.Wr
 
 	if res.GetType() != pb.Message_DISCOVER_RESPONSE {
 		return nil, nil, fmt.Errorf("Unexpected response: %s", res.GetType().String())
+	}
+
+	status := res.GetDiscoverResponse().GetStatus()
+	if status != pb.Message_OK {
+		return nil, nil, RendezvousError{Status: status, Text: res.GetDiscoverResponse().GetStatusText()}
 	}
 
 	regs := res.GetDiscoverResponse().GetRegistrations()
