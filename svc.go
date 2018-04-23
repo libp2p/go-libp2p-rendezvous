@@ -36,9 +36,14 @@ func NewRendezvousService(ctx context.Context, host host.Host, dbpath string, rz
 		return nil, err
 	}
 
+	rz := NewRendezvousServiceWithDB(host, db, rzs...)
+	return rz, nil
+}
+
+func NewRendezvousServiceWithDB(host host.Host, db *DB, rzs ...RendezvousSync) *RendezvousService {
 	rz := &RendezvousService{DB: db, rzs: rzs}
 	host.SetStreamHandler(RendezvousProto, rz.handleStream)
-	return rz, nil
+	return rz
 }
 
 func (rz *RendezvousService) handleStream(s inet.Stream) {
