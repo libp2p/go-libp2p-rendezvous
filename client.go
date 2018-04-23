@@ -204,6 +204,7 @@ func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Regist
 		}
 
 		if len(regs) < batch {
+			// TODO adaptive backoff for heavily loaded rendezvous points
 			select {
 			case <-time.After(2 * time.Minute):
 			case <-ctx.Done():
