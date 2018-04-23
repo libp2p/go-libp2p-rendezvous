@@ -22,7 +22,7 @@ const (
 )
 
 type RegistrationRecord struct {
-	Id    []byte
+	Id    peer.ID
 	Addrs [][]byte
 	Ns    string
 	Ttl   int
@@ -130,7 +130,7 @@ func newDiscoverResponse(regs []RegistrationRecord, cookie []byte) *pb.Message_D
 		rns := reg.Ns
 		rreg.Ns = &rns
 		rreg.Peer = new(pb.Message_PeerInfo)
-		rreg.Peer.Id = reg.Id
+		rreg.Peer.Id = []byte(reg.Id)
 		rreg.Peer.Addrs = reg.Addrs
 		rttl := int64(reg.Ttl)
 		rreg.Ttl = &rttl
