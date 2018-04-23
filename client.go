@@ -180,7 +180,7 @@ func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Regist
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 
-	const batch = 100
+	const batch = 200
 
 	var (
 		cookie []byte
@@ -203,7 +203,7 @@ func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Regist
 			}
 		}
 
-		if len(regs) < batch/2 {
+		if len(regs) < batch {
 			select {
 			case <-time.After(2 * time.Minute):
 			case <-ctx.Done():
