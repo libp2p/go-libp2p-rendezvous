@@ -73,27 +73,31 @@ func (cli *client) Register(ctx context.Context, ns string, ttl int) error {
 	return nil
 }
 
-func Register(ctx context.Context, rz Rendezvous, ns string) error {
-	err := rz.Register(ctx, ns, DefaultTTL)
+func Register(ctx context.Context, rz Rendezvous, ns string, ttl int) error {
+	if ttl < 120 {
+		return fmt.Errorf("registration TTL is too short")
+	}
+
+	err := rz.Register(ctx, ns, ttl)
 	if err != nil {
 		return err
 	}
 
-	go registerRefresh(ctx, rz, ns)
+	go registerRefresh(ctx, rz, ns, ttl)
 	return nil
 }
 
-func registerRefresh(ctx context.Context, rz Rendezvous, ns string) {
-	const refresh = DefaultTTL - 30
+func registerRefresh(ctx context.Context, rz Rendezvous, ns string, ttl int) {
+	refresh := time.Duration(ttl-30) * time.Second
 
 	for {
 		select {
-		case <-time.After(refresh * time.Second):
+		case <-time.After(refresh):
 		case <-ctx.Done():
 			return
 		}
 
-		err := rz.Register(ctx, ns, DefaultTTL)
+		err := rz.Register(ctx, ns, ttl)
 		if err != nil {
 			log.Errorf("Error registering [%s]: %s", ns, err.Error())
 		}
