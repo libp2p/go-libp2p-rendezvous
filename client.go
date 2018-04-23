@@ -8,16 +8,11 @@ import (
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	ggio "github.com/gogo/protobuf/io"
-	logging "github.com/ipfs/go-log"
 	host "github.com/libp2p/go-libp2p-host"
 	inet "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
-
-var log = logging.Logger("rendezvous")
-
-const DefaultTTL = 2 * 3600 // 2hr
 
 type Rendezvous interface {
 	Register(ctx context.Context, ns string, ttl int) error
@@ -51,7 +46,7 @@ func (cli *client) Register(ctx context.Context, ns string, ttl int) error {
 	}
 	defer s.Close()
 
-	r := ggio.NewDelimitedReader(s, 1<<20)
+	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 
 	req := newRegisterMessage(ns, pstore.PeerInfo{ID: cli.host.ID(), Addrs: cli.host.Addrs()}, ttl)
@@ -124,7 +119,7 @@ func (cli *client) Discover(ctx context.Context, ns string, limit int, cookie []
 	}
 	defer s.Close()
 
-	r := ggio.NewDelimitedReader(s, 1<<20)
+	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 
 	return discoverQuery(ns, limit, cookie, r, w)
@@ -182,7 +177,7 @@ func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Regist
 	defer s.Close()
 	defer close(ch)
 
-	r := ggio.NewDelimitedReader(s, 1<<20)
+	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 
 	const batch = 100
@@ -208,7 +203,7 @@ func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Regist
 			}
 		}
 
-		if len(regs) < batch {
+		if len(regs) < batch/2 {
 			select {
 			case <-time.After(2 * time.Minute):
 			case <-ctx.Done():

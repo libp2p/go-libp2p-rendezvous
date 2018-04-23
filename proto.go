@@ -1,19 +1,32 @@
 package rendezvous
 
 import (
+	"errors"
 	"fmt"
 
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
+	logging "github.com/ipfs/go-log"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	protocol "github.com/libp2p/go-libp2p-protocol"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+var log = logging.Logger("rendezvous")
+
 const (
 	RendezvousProto = protocol.ID("/rendezvous/1.0.0")
+
+	DefaultTTL = 2 * 3600 // 2hr
 )
+
+type RegistrationRecord struct {
+	Id    []byte
+	Addrs [][]byte
+	Ns    string
+	Ttl   int
+}
 
 type RendezvousError struct {
 	Status pb.Message_ResponseStatus
@@ -73,6 +86,10 @@ func newDiscoverMessage(ns string, limit int, cookie []byte) *pb.Message {
 }
 
 func pbToPeerInfo(p *pb.Message_PeerInfo) (pstore.PeerInfo, error) {
+	if p == nil {
+		return pstore.PeerInfo{}, errors.New("missing peer info")
+	}
+
 	id, err := peer.IDFromBytes(p.Id)
 	if err != nil {
 		return pstore.PeerInfo{}, err
@@ -88,4 +105,47 @@ func pbToPeerInfo(p *pb.Message_PeerInfo) (pstore.PeerInfo, error) {
 	}
 
 	return pstore.PeerInfo{ID: id, Addrs: addrs}, nil
+}
+
+func newRegisterResponse() *pb.Message_RegisterResponse {
+	r := new(pb.Message_RegisterResponse)
+	r.Status = pb.Message_OK.Enum()
+	return r
+}
+
+func newRegisterResponseError(status pb.Message_ResponseStatus, text string) *pb.Message_RegisterResponse {
+	r := new(pb.Message_RegisterResponse)
+	r.Status = status.Enum()
+	r.StatusText = &text
+	return r
+}
+
+func newDiscoverResponse(regs []RegistrationRecord, cookie []byte) *pb.Message_DiscoverResponse {
+	r := new(pb.Message_DiscoverResponse)
+	r.Status = pb.Message_OK.Enum()
+
+	rregs := make([]*pb.Message_Register, len(regs))
+	for i, reg := range regs {
+		rreg := new(pb.Message_Register)
+		rns := reg.Ns
+		rreg.Ns = &rns
+		rreg.Peer = new(pb.Message_PeerInfo)
+		rreg.Peer.Id = reg.Id
+		rreg.Peer.Addrs = reg.Addrs
+		rttl := int64(reg.Ttl)
+		rreg.Ttl = &rttl
+		rregs[i] = rreg
+	}
+
+	r.Registrations = rregs
+	r.Cookie = cookie
+
+	return r
+}
+
+func newDiscoverResponseError(status pb.Message_ResponseStatus, text string) *pb.Message_DiscoverResponse {
+	r := new(pb.Message_DiscoverResponse)
+	r.Status = status.Enum()
+	r.StatusText = &text
+	return r
 }
