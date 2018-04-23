@@ -21,16 +21,22 @@ const (
 )
 
 type RendezvousService struct {
-	DB *DB
+	DB  *DB
+	rzs []RendezvousSync
 }
 
-func NewRendezvousService(ctx context.Context, host host.Host, dbpath string) (*RendezvousService, error) {
+type RendezvousSync interface {
+	Register(p peer.ID, ns string, addrs [][]byte, ttl int)
+	Unregister(p peer.ID, ns string)
+}
+
+func NewRendezvousService(ctx context.Context, host host.Host, dbpath string, rzs ...RendezvousSync) (*RendezvousService, error) {
 	db, err := OpenDB(ctx, dbpath)
 	if err != nil {
 		return nil, err
 	}
 
-	rz := &RendezvousService{DB: db}
+	rz := &RendezvousService{DB: db, rzs: rzs}
 	host.SetStreamHandler(RendezvousProto, rz.handleStream)
 	return rz, nil
 }
@@ -164,6 +170,10 @@ func (rz *RendezvousService) handleRegister(p peer.ID, m *pb.Message_Register) *
 		return newRegisterResponseError(pb.Message_E_INTERNAL_ERROR, err.Error())
 	}
 
+	for _, rzs := range rz.rzs {
+		rzs.Register(p, ns, maddrs, ttl)
+	}
+
 	return newRegisterResponse()
 }
 
@@ -182,7 +192,16 @@ func (rz *RendezvousService) handleUnregister(p peer.ID, m *pb.Message_Unregiste
 		}
 	}
 
-	return rz.DB.Unregister(p, ns)
+	err := rz.DB.Unregister(p, ns)
+	if err != nil {
+		return err
+	}
+
+	for _, rzs := range rz.rzs {
+		rzs.Unregister(p, ns)
+	}
+
+	return nil
 }
 
 func (rz *RendezvousService) handleDiscover(p peer.ID, m *pb.Message_Discover) *pb.Message_DiscoverResponse {
