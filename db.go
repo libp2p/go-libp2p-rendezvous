@@ -102,7 +102,7 @@ func (db *DB) prepareDB() error {
 		return err
 	}
 
-	nonce := make([]byte, 16)
+	nonce := make([]byte, 32)
 	_, err = rand.Read(nonce)
 	if err != nil {
 		return err
