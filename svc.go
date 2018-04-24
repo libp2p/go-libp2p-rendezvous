@@ -165,6 +165,7 @@ func (rz *RendezvousService) handleRegister(p peer.ID, m *pb.Message_Register) *
 	}
 
 	if rcount > MaxRegistrations {
+		log.Warningf("Too many registrations for %s", p)
 		return newRegisterResponseError(pb.Message_E_NOT_AUTHORIZED, "too many registrations")
 	}
 

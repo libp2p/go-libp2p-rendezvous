@@ -2,11 +2,19 @@ package rendezvous
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 
+	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
+
+	ggio "github.com/gogo/protobuf/io"
 	bhost "github.com/libp2p/go-libp2p-blankhost"
 	host "github.com/libp2p/go-libp2p-host"
+	inet "github.com/libp2p/go-libp2p-net"
 	netutil "github.com/libp2p/go-libp2p-netutil"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
 func getRendezvousHosts(t *testing.T, ctx context.Context, n int) []host.Host {
@@ -153,4 +161,167 @@ func checkHostRegistration(t *testing.T, rr Registration, host host.Host) {
 			t.Fatal("bad registration: peer address mismatch")
 		}
 	}
+}
+
+func TestSVCErrors(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	hosts := getRendezvousHosts(t, ctx, 2)
+
+	svc, err := NewRendezvousService(ctx, hosts[0], ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.DB.Close()
+
+	// testable registration errors
+	res, err := doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newRegisterMessage("", pstore.PeerInfo{}, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRegisterResponse().GetStatus() != pb.Message_E_INVALID_NAMESPACE {
+		t.Fatal("expected E_INVALID_NAMESPACE")
+	}
+
+	badns := make([]byte, 2*MaxNamespaceLength)
+	rand.Read(badns)
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newRegisterMessage(string(badns), pstore.PeerInfo{}, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRegisterResponse().GetStatus() != pb.Message_E_INVALID_NAMESPACE {
+		t.Fatal("expected E_INVALID_NAMESPACE")
+	}
+
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newRegisterMessage("foo", pstore.PeerInfo{}, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRegisterResponse().GetStatus() != pb.Message_E_INVALID_PEER_INFO {
+		t.Fatal("expected E_INVALID_PEER_INFO")
+	}
+
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newRegisterMessage("foo", pstore.PeerInfo{ID: peer.ID("blah")}, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRegisterResponse().GetStatus() != pb.Message_E_INVALID_PEER_INFO {
+		t.Fatal("expected E_INVALID_PEER_INFO")
+	}
+
+	p, err := peer.IDB58Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newRegisterMessage("foo", pstore.PeerInfo{ID: p}, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRegisterResponse().GetStatus() != pb.Message_E_INVALID_PEER_INFO {
+		t.Fatal("expected E_INVALID_PEER_INFO")
+	}
+
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newRegisterMessage("foo", pstore.PeerInfo{ID: hosts[1].ID()}, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRegisterResponse().GetStatus() != pb.Message_E_INVALID_PEER_INFO {
+		t.Fatal("expected E_INVALID_PEER_INFO")
+	}
+
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newRegisterMessage("foo", pstore.PeerInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 2*MaxTTL))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRegisterResponse().GetStatus() != pb.Message_E_INVALID_TTL {
+		t.Fatal("expected E_INVALID_TTL")
+	}
+
+	// do MaxRegistrations
+	for i := 0; i < MaxRegistrations+1; i++ {
+		ns := fmt.Sprintf("foo%d", i)
+		res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+			newRegisterMessage(ns, pstore.PeerInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 0))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.GetRegisterResponse().GetStatus() != pb.Message_OK {
+			t.Fatal("expected OK")
+		}
+	}
+	// and now fail
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newRegisterMessage("foo", pstore.PeerInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRegisterResponse().GetStatus() != pb.Message_E_NOT_AUTHORIZED {
+		t.Fatal("expected E_NOT_AUTHORIZED")
+	}
+
+	// testable discovery errors
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newDiscoverMessage(string(badns), 0, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetDiscoverResponse().GetStatus() != pb.Message_E_INVALID_NAMESPACE {
+		t.Fatal("expected E_INVALID_NAMESPACE")
+	}
+
+	badcookie := make([]byte, 10)
+	rand.Read(badcookie)
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newDiscoverMessage("foo", 0, badcookie))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetDiscoverResponse().GetStatus() != pb.Message_E_INVALID_COOKIE {
+		t.Fatal("expected E_INVALID_COOKIE")
+	}
+
+	badcookie = make([]byte, 40)
+	rand.Read(badcookie)
+	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
+		newDiscoverMessage("foo", 0, badcookie))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetDiscoverResponse().GetStatus() != pb.Message_E_INVALID_COOKIE {
+		t.Fatal("expected E_INVALID_COOKIE")
+	}
+
+}
+
+func doTestRequest(ctx context.Context, host host.Host, rp peer.ID, m *pb.Message) (*pb.Message, error) {
+	s, err := host.NewStream(ctx, rp, RendezvousProto)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Close()
+
+	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
+	w := ggio.NewDelimitedWriter(s)
+
+	err = w.WriteMsg(m)
+	if err != nil {
+		return nil, err
+	}
+
+	res := new(pb.Message)
+	err = r.ReadMsg(res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
