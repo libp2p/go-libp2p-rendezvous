@@ -51,6 +51,18 @@
       "hash": "QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV",
       "name": "gogo-protobuf",
       "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu",
+      "name": "go-libp2p-blankhost",
+      "version": "0.2.7"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw",
+      "name": "go-libp2p-netutil",
+      "version": "0.3.11"
     }
   ],
   "gxVersion": "0.12.1",
