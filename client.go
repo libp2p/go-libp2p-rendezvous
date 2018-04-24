@@ -3,6 +3,7 @@ package rendezvous
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
@@ -92,9 +93,21 @@ func Register(ctx context.Context, rz Rendezvous, ns string, ttl int) error {
 }
 
 func registerRefresh(ctx context.Context, rz Rendezvous, ns string, ttl int) {
-	refresh := time.Duration(ttl-30) * time.Second
+	var refresh time.Duration
+	errcount := 0
 
 	for {
+		if errcount > 0 {
+			// do randomized exponential backoff, up to ~4 hours
+			if errcount > 7 {
+				errcount = 7
+			}
+			backoff := 2 << uint(errcount)
+			refresh = 5*time.Minute + time.Duration(rand.Intn(backoff*60000))*time.Millisecond
+		} else {
+			refresh = time.Duration(ttl-30) * time.Second
+		}
+
 		select {
 		case <-time.After(refresh):
 		case <-ctx.Done():
@@ -104,6 +117,9 @@ func registerRefresh(ctx context.Context, rz Rendezvous, ns string, ttl int) {
 		err := rz.Register(ctx, ns, ttl)
 		if err != nil {
 			log.Errorf("Error registering [%s]: %s", ns, err.Error())
+			errcount++
+		} else {
+			errcount = 0
 		}
 	}
 }
