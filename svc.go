@@ -16,7 +16,7 @@ const (
 	MaxTTL               = 72 * 3600 // 72hr
 	MaxNamespaceLength   = 256
 	MaxPeerAddressLength = 2048
-	MaxRegistrations     = 100
+	MaxRegistrations     = 1000
 	MaxDiscoverLimit     = 1000
 )
 
