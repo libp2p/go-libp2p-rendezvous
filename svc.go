@@ -175,6 +175,8 @@ func (rz *RendezvousService) handleRegister(p peer.ID, m *pb.Message_Register) *
 		return newRegisterResponseError(pb.Message_E_INTERNAL_ERROR, err.Error())
 	}
 
+	log.Infof("registered peer %s %s (%d)", p, ns, ttl)
+
 	for _, rzs := range rz.rzs {
 		rzs.Register(p, ns, maddrs, ttl)
 	}
@@ -201,6 +203,8 @@ func (rz *RendezvousService) handleUnregister(p peer.ID, m *pb.Message_Unregiste
 	if err != nil {
 		return err
 	}
+
+	log.Infof("unregistered peer %s %s", p, ns)
 
 	for _, rzs := range rz.rzs {
 		rzs.Unregister(p, ns)
@@ -232,6 +236,8 @@ func (rz *RendezvousService) handleDiscover(p peer.ID, m *pb.Message_Discover) *
 		log.Errorf("Error in query: %s", err.Error())
 		return newDiscoverResponseError(pb.Message_E_INTERNAL_ERROR, err.Error())
 	}
+
+	log.Infof("discover query: %s %s -> %d", p, ns, len(regs))
 
 	return newDiscoverResponse(regs, cookie)
 }
