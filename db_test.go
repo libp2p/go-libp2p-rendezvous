@@ -291,6 +291,173 @@ func TestDBRegistrationAndDiscovery(t *testing.T) {
 	db.Close()
 }
 
+func TestDBRegistrationAndDiscoveryMultipleNS(t *testing.T) {
+	db, err := OpenDB(context.Background(), ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p1, err := peer.IDB58Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p2, err := peer.IDB58Decode("QmUkUQgxXeggyaD5Ckv8ZqfW8wHBX6cYyeiyqvVZYzq5Bi")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	addr1, err := ma.NewMultiaddr("/ip4/1.1.1.1/tcp/9999")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addrs1 := [][]byte{addr1.Bytes()}
+
+	addr2, err := ma.NewMultiaddr("/ip4/2.2.2.2/tcp/9999")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addrs2 := [][]byte{addr2.Bytes()}
+
+	err = db.Register(p1, "foo1", addrs1, 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = db.Register(p1, "foo2", addrs1, 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := db.CountRegistrations(p1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Fatal("registrations for p1 should be 2")
+	}
+
+	rrs, cookie, err := db.Discover("", nil, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rrs) != 2 {
+		t.Fatal("should have got 2 registrations")
+	}
+	rr := rrs[0]
+	if rr.Id != p1 {
+		t.Fatal("expected p1 ID in registration")
+	}
+	if rr.Ns != "foo1" {
+		t.Fatal("expected namespace foo1 in registration")
+	}
+	if !equalAddrs(rr.Addrs, addrs1) {
+		t.Fatal("expected p1's addrs in registration")
+	}
+
+	rr = rrs[1]
+	if rr.Id != p1 {
+		t.Fatal("expected p1 ID in registration")
+	}
+	if rr.Ns != "foo2" {
+		t.Fatal("expected namespace foo1 in registration")
+	}
+	if !equalAddrs(rr.Addrs, addrs1) {
+		t.Fatal("expected p1's addrs in registration")
+	}
+
+	err = db.Register(p2, "foo1", addrs2, 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = db.Register(p2, "foo2", addrs2, 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = db.CountRegistrations(p2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Fatal("registrations for p2 should be 2")
+	}
+
+	rrs, cookie, err = db.Discover("", cookie, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rrs) != 2 {
+		t.Fatal("should have got 2 registrations")
+	}
+	rr = rrs[0]
+	if rr.Id != p2 {
+		t.Fatal("expected p2 ID in registration")
+	}
+	if rr.Ns != "foo1" {
+		t.Fatal("expected namespace foo1 in registration")
+	}
+	if !equalAddrs(rr.Addrs, addrs2) {
+		t.Fatal("expected p2's addrs in registration")
+	}
+
+	rr = rrs[1]
+	if rr.Id != p2 {
+		t.Fatal("expected p2 ID in registration")
+	}
+	if rr.Ns != "foo2" {
+		t.Fatal("expected namespace foo1 in registration")
+	}
+	if !equalAddrs(rr.Addrs, addrs2) {
+		t.Fatal("expected p2's addrs in registration")
+	}
+
+	err = db.Unregister(p2, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = db.CountRegistrations(p2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatal("registrations for p2 should be 0")
+	}
+
+	rrs, _, err = db.Discover("", nil, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rrs) != 2 {
+		t.Fatal("should have got 2 registrations")
+	}
+	rr = rrs[0]
+	if rr.Id != p1 {
+		t.Fatal("expected p1 ID in registration")
+	}
+	if rr.Ns != "foo1" {
+		t.Fatal("expected namespace foo1 in registration")
+	}
+	if !equalAddrs(rr.Addrs, addrs1) {
+		t.Fatal("expected p1's addrs in registration")
+	}
+
+	rr = rrs[1]
+	if rr.Id != p1 {
+		t.Fatal("expected p1 ID in registration")
+	}
+	if rr.Ns != "foo2" {
+		t.Fatal("expected namespace foo1 in registration")
+	}
+	if !equalAddrs(rr.Addrs, addrs1) {
+		t.Fatal("expected p1's addrs in registration")
+	}
+
+	db.Close()
+}
+
 func TestDBCleanup(t *testing.T) {
 	db, err := OpenDB(context.Background(), ":memory:")
 	if err != nil {
