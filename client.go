@@ -14,6 +14,10 @@ import (
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
+var (
+	DiscoverAsyncInterval = 2 * time.Minute
+)
+
 type Rendezvous interface {
 	Register(ctx context.Context, ns string, ttl int) error
 	Unregister(ctx context.Context, ns string) error
@@ -210,7 +214,7 @@ func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Regist
 		if len(regs) < batch {
 			// TODO adaptive backoff for heavily loaded rendezvous points
 			select {
-			case <-time.After(2 * time.Minute):
+			case <-time.After(DiscoverAsyncInterval):
 			case <-ctx.Done():
 				return
 			}
