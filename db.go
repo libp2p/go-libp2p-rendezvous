@@ -53,6 +53,11 @@ func OpenDB(ctx context.Context, path string) (*DB, error) {
 		return nil, err
 	}
 
+	if path == ":memory:" {
+		// this is necessary to avoid creating a new database on each connection
+		db.SetMaxOpenConns(1)
+	}
+
 	rdb := &DB{db: db}
 	if create {
 		err = rdb.prepareDB()
@@ -262,7 +267,7 @@ func (db *DB) Discover(ns string, cookie []byte, limit int) ([]RegistrationRecor
 		if ns == "" {
 			rows, err = db.selectPeerRegistrations.Query(now, limit)
 		} else {
-			rows, err = db.selectPeerRegistrations.Query(ns, now, limit)
+			rows, err = db.selectPeerRegistrationsNS.Query(ns, now, limit)
 		}
 	}
 
@@ -332,17 +337,21 @@ func (db *DB) ValidCookie(ns string, cookie []byte) bool {
 
 func (db *DB) background(ctx context.Context) {
 	for {
-		now := time.Now().Unix()
-		_, err := db.deleteExpiredRegistrations.Exec(now)
-		if err != nil {
-			log.Errorf("error deleting expired registrations: %s", err.Error())
-		}
+		db.cleanupExpired()
 
 		select {
 		case <-time.After(15 * time.Minute):
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+func (db *DB) cleanupExpired() {
+	now := time.Now().Unix()
+	_, err := db.deleteExpiredRegistrations.Exec(now)
+	if err != nil {
+		log.Errorf("error deleting expired registrations: %s", err.Error())
 	}
 }
 
