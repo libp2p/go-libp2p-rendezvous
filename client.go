@@ -215,6 +215,9 @@ func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Regist
 	for {
 		regs, cookie, err = discoverQuery(ns, batch, cookie, r, w)
 		if err != nil {
+			// TODO robust error recovery
+			//      - handle closed streams with backoff + new stream, preserving the cookie
+			//      - handle E_INVALID_COOKIE errors in that case to restart the discovery
 			log.Errorf("Error in discovery [%s]: %s", ns, err.Error())
 			return
 		}
