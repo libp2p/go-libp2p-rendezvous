@@ -1,4 +1,4 @@
-package rendezvous
+package db
 
 import (
 	"bytes"
@@ -11,10 +11,15 @@ import (
 	"os"
 	"time"
 
+	dbi "github.com/libp2p/go-libp2p-rendezvous/db"
+
 	_ "github.com/mattn/go-sqlite3"
 
+	logging "github.com/ipfs/go-log"
 	peer "github.com/libp2p/go-libp2p-peer"
 )
+
+var log = logging.Logger("rendezvous/db")
 
 type DB struct {
 	db *sql.DB
@@ -240,7 +245,7 @@ func (db *DB) Unregister(p peer.ID, ns string) error {
 	return err
 }
 
-func (db *DB) Discover(ns string, cookie []byte, limit int) ([]RegistrationRecord, []byte, error) {
+func (db *DB) Discover(ns string, cookie []byte, limit int) ([]dbi.RegistrationRecord, []byte, error) {
 	now := time.Now().Unix()
 
 	var (
@@ -278,10 +283,10 @@ func (db *DB) Discover(ns string, cookie []byte, limit int) ([]RegistrationRecor
 
 	defer rows.Close()
 
-	regs := make([]RegistrationRecord, 0, limit)
+	regs := make([]dbi.RegistrationRecord, 0, limit)
 	for rows.Next() {
 		var (
-			reg    RegistrationRecord
+			reg    dbi.RegistrationRecord
 			rid    string
 			rns    string
 			expire int64

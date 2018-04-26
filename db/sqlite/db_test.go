@@ -1,4 +1,4 @@
-package rendezvous
+package db
 
 import (
 	"bytes"

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	db "github.com/libp2p/go-libp2p-rendezvous/db"
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	logging "github.com/ipfs/go-log"
@@ -20,13 +21,6 @@ const (
 
 	DefaultTTL = 2 * 3600 // 2hr
 )
-
-type RegistrationRecord struct {
-	Id    peer.ID
-	Addrs [][]byte
-	Ns    string
-	Ttl   int
-}
 
 type RendezvousError struct {
 	Status pb.Message_ResponseStatus
@@ -120,7 +114,7 @@ func newRegisterResponseError(status pb.Message_ResponseStatus, text string) *pb
 	return r
 }
 
-func newDiscoverResponse(regs []RegistrationRecord, cookie []byte) *pb.Message_DiscoverResponse {
+func newDiscoverResponse(regs []db.RegistrationRecord, cookie []byte) *pb.Message_DiscoverResponse {
 	r := new(pb.Message_DiscoverResponse)
 	r.Status = pb.Message_OK.Enum()
 

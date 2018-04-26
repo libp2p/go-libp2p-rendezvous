@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
+	db "github.com/libp2p/go-libp2p-rendezvous/db/sqlite"
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	ggio "github.com/gogo/protobuf/io"
@@ -53,13 +54,22 @@ func getRendezvousClients(t *testing.T, hosts []host.Host) []Rendezvous {
 	return clients
 }
 
+func makeRendezvousService(ctx context.Context, host host.Host, path string) (*RendezvousService, error) {
+	dbi, err := db.OpenDB(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewRendezvousService(host, dbi), nil
+}
+
 func TestSVCRegistrationAndDiscovery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	hosts := getRendezvousHosts(t, ctx, 5)
 
-	svc, err := NewRendezvousService(ctx, hosts[0], ":memory:")
+	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +179,7 @@ func TestSVCErrors(t *testing.T) {
 
 	hosts := getRendezvousHosts(t, ctx, 2)
 
-	svc, err := NewRendezvousService(ctx, hosts[0], ":memory:")
+	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}

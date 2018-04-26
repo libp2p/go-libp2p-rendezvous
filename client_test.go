@@ -15,7 +15,7 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 
 	hosts := getRendezvousHosts(t, ctx, 5)
 
-	svc, err := NewRendezvousService(ctx, hosts[0], ":memory:")
+	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 
 	hosts := getRendezvousHosts(t, ctx, 5)
 
-	svc, err := NewRendezvousService(ctx, hosts[0], ":memory:")
+	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,9 +1,9 @@
 package rendezvous
 
 import (
-	"context"
 	"fmt"
 
+	db "github.com/libp2p/go-libp2p-rendezvous/db"
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	ggio "github.com/gogo/protobuf/io"
@@ -21,7 +21,7 @@ const (
 )
 
 type RendezvousService struct {
-	DB  *DB
+	DB  db.DB
 	rzs []RendezvousSync
 }
 
@@ -30,17 +30,7 @@ type RendezvousSync interface {
 	Unregister(p peer.ID, ns string)
 }
 
-func NewRendezvousService(ctx context.Context, host host.Host, dbpath string, rzs ...RendezvousSync) (*RendezvousService, error) {
-	db, err := OpenDB(ctx, dbpath)
-	if err != nil {
-		return nil, err
-	}
-
-	rz := NewRendezvousServiceWithDB(host, db, rzs...)
-	return rz, nil
-}
-
-func NewRendezvousServiceWithDB(host host.Host, db *DB, rzs ...RendezvousSync) *RendezvousService {
+func NewRendezvousService(host host.Host, db db.DB, rzs ...RendezvousSync) *RendezvousService {
 	rz := &RendezvousService{DB: db, rzs: rzs}
 	host.SetStreamHandler(RendezvousProto, rz.handleStream)
 	return rz
