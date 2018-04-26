@@ -151,7 +151,7 @@ func (rz *RendezvousService) handleRegister(p peer.ID, m *pb.Message_Register) *
 	rcount, err := rz.DB.CountRegistrations(p)
 	if err != nil {
 		log.Errorf("Error counting registrations: %s", err.Error())
-		return newRegisterResponseError(pb.Message_E_INTERNAL_ERROR, err.Error())
+		return newRegisterResponseError(pb.Message_E_INTERNAL_ERROR, "database error")
 	}
 
 	if rcount > MaxRegistrations {
@@ -163,7 +163,7 @@ func (rz *RendezvousService) handleRegister(p peer.ID, m *pb.Message_Register) *
 	err = rz.DB.Register(p, ns, maddrs, ttl)
 	if err != nil {
 		log.Errorf("Error registering: %s", err.Error())
-		return newRegisterResponseError(pb.Message_E_INTERNAL_ERROR, err.Error())
+		return newRegisterResponseError(pb.Message_E_INTERNAL_ERROR, "database error")
 	}
 
 	log.Infof("registered peer %s %s (%d)", p, ns, ttl)
@@ -225,7 +225,7 @@ func (rz *RendezvousService) handleDiscover(p peer.ID, m *pb.Message_Discover) *
 	regs, cookie, err := rz.DB.Discover(ns, cookie, limit)
 	if err != nil {
 		log.Errorf("Error in query: %s", err.Error())
-		return newDiscoverResponseError(pb.Message_E_INTERNAL_ERROR, err.Error())
+		return newDiscoverResponseError(pb.Message_E_INTERNAL_ERROR, "database error")
 	}
 
 	log.Infof("discover query: %s %s -> %d", p, ns, len(regs))
