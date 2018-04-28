@@ -46,10 +46,10 @@ func connect(t *testing.T, a, b host.Host) {
 	}
 }
 
-func getRendezvousClients(t *testing.T, hosts []host.Host) []Rendezvous {
-	clients := make([]Rendezvous, len(hosts)-1)
+func getRendezvousPoints(t *testing.T, hosts []host.Host) []RendezvousPoint {
+	clients := make([]RendezvousPoint, len(hosts)-1)
 	for i, host := range hosts[1:] {
-		clients[i] = NewRendezvousClient(host, hosts[0].ID())
+		clients[i] = NewRendezvousPoint(host, hosts[0].ID())
 	}
 	return clients
 }
@@ -75,7 +75,7 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 	}
 	defer svc.DB.Close()
 
-	clients := getRendezvousClients(t, hosts)
+	clients := getRendezvousPoints(t, hosts)
 
 	err = clients[0].Register(ctx, "foo1", 60)
 	if err != nil {

@@ -9,6 +9,14 @@ import (
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
+func getRendezvousClients(t *testing.T, hosts []host.Host) []RendezvousClient {
+	clients := make([]RendezvousClient, len(hosts)-1)
+	for i, host := range hosts[1:] {
+		clients[i] = NewRendezvousClient(host, hosts[0].ID())
+	}
+	return clients
+}
+
 func TestClientRegistrationAndDiscovery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -23,12 +31,12 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 
 	clients := getRendezvousClients(t, hosts)
 
-	err = Register(ctx, clients[0], "foo1", DefaultTTL)
+	err = clients[0].Register(ctx, "foo1", DefaultTTL)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pi, cookie, err := DiscoverPeers(ctx, clients[0], "foo1", 0, nil)
+	pi, cookie, err := clients[0].Discover(ctx, "foo1", 0, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,12 +46,12 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 	checkPeerInfo(t, pi[0], hosts[1])
 
 	for i, client := range clients[1:] {
-		err = Register(ctx, client, "foo1", DefaultTTL)
+		err = client.Register(ctx, "foo1", DefaultTTL)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		pi, cookie, err = DiscoverPeers(ctx, clients[0], "foo1", 10, cookie)
+		pi, cookie, err = clients[0].Discover(ctx, "foo1", 10, cookie)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -54,7 +62,7 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 	}
 
 	for _, client := range clients[1:] {
-		pi, _, err = DiscoverPeers(ctx, client, "foo1", 10, nil)
+		pi, _, err = client.Discover(ctx, "foo1", 10, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -84,13 +92,13 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 
 	DiscoverAsyncInterval = 1 * time.Second
 
-	ch, err := DiscoverPeersAsync(ctx, clients[0], "foo1")
+	ch, err := clients[0].DiscoverAsync(ctx, "foo1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i, client := range clients[0:] {
-		err = Register(ctx, client, "foo1", DefaultTTL)
+		err = client.Register(ctx, "foo1", DefaultTTL)
 		if err != nil {
 			t.Fatal(err)
 		}
