@@ -26,7 +26,7 @@ type RendezvousService struct {
 }
 
 type RendezvousSync interface {
-	Register(p peer.ID, ns string, addrs [][]byte, ttl int)
+	Register(p peer.ID, ns string, addrs [][]byte, ttl int, counter uint64)
 	Unregister(p peer.ID, ns string)
 }
 
@@ -160,7 +160,7 @@ func (rz *RendezvousService) handleRegister(p peer.ID, m *pb.Message_Register) *
 	}
 
 	// ok, seems like we can register
-	err = rz.DB.Register(p, ns, maddrs, ttl)
+	counter, err := rz.DB.Register(p, ns, maddrs, ttl)
 	if err != nil {
 		log.Errorf("Error registering: %s", err.Error())
 		return newRegisterResponseError(pb.Message_E_INTERNAL_ERROR, "database error")
@@ -169,7 +169,7 @@ func (rz *RendezvousService) handleRegister(p peer.ID, m *pb.Message_Register) *
 	log.Infof("registered peer %s %s (%d)", p, ns, ttl)
 
 	for _, rzs := range rz.rzs {
-		rzs.Register(p, ns, maddrs, ttl)
+		rzs.Register(p, ns, maddrs, ttl, counter)
 	}
 
 	return newRegisterResponse(ttl)

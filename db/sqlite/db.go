@@ -33,6 +33,7 @@ type DB struct {
 	selectPeerRegistrationsC   *sql.Stmt
 	selectPeerRegistrationsNSC *sql.Stmt
 	deleteExpiredRegistrations *sql.Stmt
+	getCounter                 *sql.Stmt
 
 	nonce []byte
 
@@ -189,35 +190,51 @@ func (db *DB) prepareStmts() error {
 	}
 	db.deleteExpiredRegistrations = stmt
 
+	stmt, err = db.db.Prepare("SELECT MAX(counter) FROM Registrations")
+	if err != nil {
+		return err
+	}
+	db.getCounter = stmt
+
 	return nil
 }
 
-func (db *DB) Register(p peer.ID, ns string, addrs [][]byte, ttl int) error {
+func (db *DB) Register(p peer.ID, ns string, addrs [][]byte, ttl int) (uint64, error) {
 	pid := p.Pretty()
 	maddrs := packAddrs(addrs)
 	expire := time.Now().Unix() + int64(ttl)
 
 	tx, err := db.db.Begin()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	delOld := tx.Stmt(db.deletePeerRegistrationsNs)
 	insertNew := tx.Stmt(db.insertPeerRegistration)
+	getCounter := tx.Stmt(db.getCounter)
 
 	_, err = delOld.Exec(pid, ns)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return 0, err
 	}
 
 	_, err = insertNew.Exec(pid, ns, expire, maddrs)
 	if err != nil {
 		tx.Rollback()
-		return err
+		return 0, err
 	}
 
-	return tx.Commit()
+	var counter uint64
+	row := getCounter.QueryRow()
+	err = row.Scan(&counter)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	err = tx.Commit()
+	return counter, err
 }
 
 func (db *DB) CountRegistrations(p peer.ID) (int, error) {
