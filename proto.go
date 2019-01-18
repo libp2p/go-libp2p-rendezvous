@@ -101,9 +101,11 @@ func pbToPeerInfo(p *pb.Message_PeerInfo) (pstore.PeerInfo, error) {
 	return pstore.PeerInfo{ID: id, Addrs: addrs}, nil
 }
 
-func newRegisterResponse() *pb.Message_RegisterResponse {
+func newRegisterResponse(ttl int) *pb.Message_RegisterResponse {
+	ttl64 := int64(ttl)
 	r := new(pb.Message_RegisterResponse)
 	r.Status = pb.Message_OK.Enum()
+	r.Ttl = &ttl64
 	return r
 }
 

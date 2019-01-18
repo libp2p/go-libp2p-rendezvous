@@ -172,7 +172,7 @@ func (rz *RendezvousService) handleRegister(p peer.ID, m *pb.Message_Register) *
 		rzs.Register(p, ns, maddrs, ttl)
 	}
 
-	return newRegisterResponse()
+	return newRegisterResponse(ttl)
 }
 
 func (rz *RendezvousService) handleUnregister(p peer.ID, m *pb.Message_Unregister) error {
