@@ -149,7 +149,7 @@ func TestDBRegistrationAndDiscovery(t *testing.T) {
 	addrs2 := [][]byte{addr2.Bytes()}
 
 	// register p1 and do discovery
-	err = db.Register(p1, "foo1", addrs1, 60)
+	_, err = db.Register(p1, "foo1", addrs1, 60)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestDBRegistrationAndDiscovery(t *testing.T) {
 	}
 
 	// register p2 and do progressive discovery
-	err = db.Register(p2, "foo1", addrs2, 60)
+	_, err = db.Register(p2, "foo1", addrs2, 60)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestDBRegistrationAndDiscovery(t *testing.T) {
 	}
 
 	// reregister p1 and do progressive discovery
-	err = db.Register(p1, "foo1", addrs1, 60)
+	_, err = db.Register(p1, "foo1", addrs1, 60)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,12 +319,12 @@ func TestDBRegistrationAndDiscoveryMultipleNS(t *testing.T) {
 	}
 	addrs2 := [][]byte{addr2.Bytes()}
 
-	err = db.Register(p1, "foo1", addrs1, 60)
+	_, err = db.Register(p1, "foo1", addrs1, 60)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = db.Register(p1, "foo2", addrs1, 60)
+	_, err = db.Register(p1, "foo2", addrs1, 60)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,12 +366,12 @@ func TestDBRegistrationAndDiscoveryMultipleNS(t *testing.T) {
 		t.Fatal("expected p1's addrs in registration")
 	}
 
-	err = db.Register(p2, "foo1", addrs2, 60)
+	_, err = db.Register(p2, "foo1", addrs2, 60)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = db.Register(p2, "foo2", addrs2, 60)
+	_, err = db.Register(p2, "foo2", addrs2, 60)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,7 +475,7 @@ func TestDBCleanup(t *testing.T) {
 	}
 	addrs1 := [][]byte{addr1.Bytes()}
 
-	err = db.Register(p1, "foo1", addrs1, 1)
+	_, err = db.Register(p1, "foo1", addrs1, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

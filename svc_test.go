@@ -13,9 +13,9 @@ import (
 	bhost "github.com/libp2p/go-libp2p-blankhost"
 	host "github.com/libp2p/go-libp2p-host"
 	inet "github.com/libp2p/go-libp2p-net"
-	netutil "github.com/libp2p/go-libp2p-netutil"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
+	testutil "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
 func getRendezvousHosts(t *testing.T, ctx context.Context, n int) []host.Host {
@@ -30,7 +30,7 @@ func getNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
 	var out []host.Host
 
 	for i := 0; i < n; i++ {
-		netw := netutil.GenSwarmNetwork(t, ctx)
+		netw := testutil.GenSwarmNetwork(t, ctx)
 		h := bhost.NewBlankHost(netw)
 		out = append(out, h)
 	}

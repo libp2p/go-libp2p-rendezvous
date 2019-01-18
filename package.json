@@ -60,9 +60,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcD6i5pkzKcy5AiSEU22xmj8MYkkPSaXVvbYo7Wx2hp6H",
-      "name": "go-libp2p-netutil",
-      "version": "0.4.18"
+      "hash": "QmegQFxhr1J6yZ1vDQuDmJi5jntmj6BL96S11HVtXNCaHb",
+      "name": "go-libp2p-swarm",
+      "version": "3.0.28"
     }
   ],
   "gxVersion": "0.12.1",
