@@ -17,6 +17,7 @@ message Message {
     E_INVALID_COOKIE    = 103;
     E_NOT_AUTHORIZED    = 200;
     E_INTERNAL_ERROR    = 300;
+    E_UNAVAILABLE       = 400;
   }
 
   message PeerInfo {
@@ -33,6 +34,7 @@ message Message {
   message RegisterResponse {
     optional ResponseStatus status = 1;
     optional string statusText = 2;
+    optional int64 ttl = 3;
   }
 
   message Unregister {
