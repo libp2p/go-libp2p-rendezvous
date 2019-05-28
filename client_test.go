@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	host "github.com/libp2p/go-libp2p-host"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func getRendezvousClients(t *testing.T, hosts []host.Host) []RendezvousClient {
@@ -110,7 +110,7 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 	DiscoverAsyncInterval = 2 * time.Minute
 }
 
-func checkPeerInfo(t *testing.T, pi pstore.PeerInfo, host host.Host) {
+func checkPeerInfo(t *testing.T, pi peer.AddrInfo, host host.Host) {
 	if pi.ID != host.ID() {
 		t.Fatal("bad registration: peer ID doesn't match host ID")
 	}

@@ -8,9 +8,8 @@ import (
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	logging "github.com/ipfs/go-log"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -31,7 +30,7 @@ func (e RendezvousError) Error() string {
 	return fmt.Sprintf("Rendezvous error: %s (%s)", e.Text, pb.Message_ResponseStatus(e.Status).String())
 }
 
-func newRegisterMessage(ns string, pi pstore.PeerInfo, ttl int) *pb.Message {
+func newRegisterMessage(ns string, pi peer.AddrInfo, ttl int) *pb.Message {
 	msg := new(pb.Message)
 	msg.Type = pb.Message_REGISTER.Enum()
 	msg.Register = new(pb.Message_Register)
@@ -79,14 +78,14 @@ func newDiscoverMessage(ns string, limit int, cookie []byte) *pb.Message {
 	return msg
 }
 
-func pbToPeerInfo(p *pb.Message_PeerInfo) (pstore.PeerInfo, error) {
+func pbToPeerInfo(p *pb.Message_PeerInfo) (peer.AddrInfo, error) {
 	if p == nil {
-		return pstore.PeerInfo{}, errors.New("missing peer info")
+		return peer.AddrInfo{}, errors.New("missing peer info")
 	}
 
 	id, err := peer.IDFromBytes(p.Id)
 	if err != nil {
-		return pstore.PeerInfo{}, err
+		return peer.AddrInfo{}, err
 	}
 	addrs := make([]ma.Multiaddr, 0, len(p.Addrs))
 	for _, bs := range p.Addrs {
@@ -98,7 +97,7 @@ func pbToPeerInfo(p *pb.Message_PeerInfo) (pstore.PeerInfo, error) {
 		addrs = append(addrs, addr)
 	}
 
-	return pstore.PeerInfo{ID: id, Addrs: addrs}, nil
+	return peer.AddrInfo{ID: id, Addrs: addrs}, nil
 }
 
 func newRegisterResponse(ttl int) *pb.Message_RegisterResponse {
