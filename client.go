@@ -20,7 +20,7 @@ var (
 )
 
 type RendezvousPoint interface {
-	Register(ctx context.Context, ns string, ttl int) error
+	Register(ctx context.Context, ns string, ttl int) (time.Duration, error)
 	Unregister(ctx context.Context, ns string) error
 	Discover(ctx context.Context, ns string, limit int, cookie []byte) ([]Registration, []byte, error)
 	DiscoverAsync(ctx context.Context, ns string) (<-chan Registration, error)
@@ -33,7 +33,7 @@ type Registration struct {
 }
 
 type RendezvousClient interface {
-	Register(ctx context.Context, ns string, ttl int) error
+	Register(ctx context.Context, ns string, ttl int) (time.Duration, error)
 	Unregister(ctx context.Context, ns string) error
 	Discover(ctx context.Context, ns string, limit int, cookie []byte) ([]peer.AddrInfo, []byte, error)
 	DiscoverAsync(ctx context.Context, ns string) (<-chan peer.AddrInfo, error)
@@ -63,7 +63,7 @@ type rendezvousClient struct {
 	rp RendezvousPoint
 }
 
-func (rp *rendezvousPoint) Register(ctx context.Context, ns string, ttl int) error {
+func (rp *rendezvousPoint) Register(ctx context.Context, ns string, ttl int) (time.Duration, error) {
 	s, err := rp.host.NewStream(ctx, rp.p, RendezvousProto)
 	if err != nil {
 		return err
@@ -76,39 +76,40 @@ func (rp *rendezvousPoint) Register(ctx context.Context, ns string, ttl int) err
 	req := newRegisterMessage(ns, peer.AddrInfo{ID: rp.host.ID(), Addrs: rp.host.Addrs()}, ttl)
 	err = w.WriteMsg(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var res pb.Message
 	err = r.ReadMsg(&res)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if res.GetType() != pb.Message_REGISTER_RESPONSE {
-		return fmt.Errorf("Unexpected response: %s", res.GetType().String())
+		return 0, fmt.Errorf("Unexpected response: %s", res.GetType().String())
 	}
 
-	status := res.GetRegisterResponse().GetStatus()
+	response := res.GetRegisterResponse()
+	status := response.GetStatus()
 	if status != pb.Message_OK {
-		return RendezvousError{Status: status, Text: res.GetRegisterResponse().GetStatusText()}
+		return 0, RendezvousError{Status: status, Text: res.GetRegisterResponse().GetStatusText()}
 	}
 
-	return nil
+	return time.Duration(*response.Ttl) * time.Second, nil
 }
 
-func (rc *rendezvousClient) Register(ctx context.Context, ns string, ttl int) error {
+func (rc *rendezvousClient) Register(ctx context.Context, ns string, ttl int) (time.Duration, error) {
 	if ttl < 120 {
-		return fmt.Errorf("registration TTL is too short")
+		return 0, fmt.Errorf("registration TTL is too short")
 	}
 
-	err := rc.rp.Register(ctx, ns, ttl)
+	returnedTTL, err := rc.rp.Register(ctx, ns, ttl)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	go registerRefresh(ctx, rc.rp, ns, ttl)
-	return nil
+	return returnedTTL, nil
 }
 
 func registerRefresh(ctx context.Context, rz RendezvousPoint, ns string, ttl int) {
