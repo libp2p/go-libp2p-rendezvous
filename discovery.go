@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type rendezvousDiscoveryClient struct {
+type rendezvousDiscovery struct {
 	rp        RendezvousPoint
 	peerCache sync.Map //is a map[string]discoveredPeerCache
 	rng       *rand.Rand
@@ -19,17 +19,22 @@ type rendezvousDiscoveryClient struct {
 }
 
 type discoveredPeerCache struct {
-	cachedRegs map[peer.ID]*Registration
+	cachedRecs map[peer.ID]*record
 	cookie     []byte
 	mux        sync.Mutex
 }
 
-func NewRendezvousDiscoveryClient(host host.Host, rendezvousPeer peer.ID) discovery.Discovery {
-	rp := NewRendezvousPoint(host, rendezvousPeer)
-	return &rendezvousDiscoveryClient{rp, sync.Map{}, rand.New(rand.NewSource(rand.Int63())), sync.Mutex{}}
+type record struct {
+	peer   peer.AddrInfo
+	expire int64
 }
 
-func (c *rendezvousDiscoveryClient) Advertise(ctx context.Context, ns string, opts ...discovery.Option) (time.Duration, error) {
+func NewRendezvousDiscovery(host host.Host, rendezvousPeer peer.ID) discovery.Discovery {
+	rp := NewRendezvousPoint(host, rendezvousPeer)
+	return &rendezvousDiscovery{rp, sync.Map{}, rand.New(rand.NewSource(rand.Int63())), sync.Mutex{}}
+}
+
+func (c *rendezvousDiscovery) Advertise(ctx context.Context, ns string, opts ...discovery.Option) (time.Duration, error) {
 	// Get options
 	var options discovery.Options
 	err := options.Apply(opts...)
@@ -53,7 +58,7 @@ func (c *rendezvousDiscoveryClient) Advertise(ctx context.Context, ns string, op
 	}
 }
 
-func (c *rendezvousDiscoveryClient) FindPeers(ctx context.Context, ns string, opts ...discovery.Option) (<-chan peer.AddrInfo, error) {
+func (c *rendezvousDiscovery) FindPeers(ctx context.Context, ns string, opts ...discovery.Option) (<-chan peer.AddrInfo, error) {
 	// Get options
 	var options discovery.Options
 	err := options.Apply(opts...)
@@ -74,54 +79,49 @@ func (c *rendezvousDiscoveryClient) FindPeers(ctx context.Context, ns string, op
 	cache = genericCache.(*discoveredPeerCache)
 
 	cache.mux.Lock()
+	defer cache.mux.Unlock()
 
 	// Remove all expired entries from cache
-	currentTime := int(time.Now().Unix())
-	newCacheSize := len(cache.cachedRegs)
+	currentTime := time.Now().Unix()
+	newCacheSize := len(cache.cachedRecs)
 
-	for p := range cache.cachedRegs {
-		reg := cache.cachedRegs[p]
-		if reg.Ttl < currentTime {
+	for p := range cache.cachedRecs {
+		rec := cache.cachedRecs[p]
+		if rec.expire < currentTime {
 			newCacheSize--
-			delete(cache.cachedRegs, p)
+			delete(cache.cachedRecs, p)
 		}
 	}
 
 	cookie := cache.cookie
-	cache.mux.Unlock()
 
 	// Discover new records if we don't have enough
-	var discoveryErr error
 	if newCacheSize < limit {
-		if discoveryRecords, newCookie, err := c.rp.Discover(ctx, ns, limit, cookie); err == nil {
-			cache.mux.Lock()
-			if cache.cachedRegs == nil {
-				cache.cachedRegs = make(map[peer.ID]*Registration)
+		// TODO: Should we return error even if we have valid cached results?
+		var regs []Registration
+		var newCookie []byte
+		if regs, newCookie, err = c.rp.Discover(ctx, ns, limit, cookie); err == nil {
+			if cache.cachedRecs == nil {
+				cache.cachedRecs = make(map[peer.ID]*record)
 			}
-			for i := range discoveryRecords {
-				rec := &discoveryRecords[i]
-				rec.Ttl += currentTime
-				cache.cachedRegs[rec.Peer.ID] = rec
+			for _, reg := range regs {
+				rec := &record{peer: reg.Peer, expire: int64(reg.Ttl) + currentTime}
+				cache.cachedRecs[rec.peer.ID] = rec
 			}
 			cache.cookie = newCookie
-			cache.mux.Unlock()
-		} else {
-			// TODO: Should we return error even if we have valid cached results?
-			discoveryErr = err
 		}
 	}
 
 	// Randomize and fill channel with available records
-	cache.mux.Lock()
-	sendQuantity := len(cache.cachedRegs)
-	if limit < sendQuantity {
-		sendQuantity = limit
+	count := len(cache.cachedRecs)
+	if limit < count {
+		count = limit
 	}
 
-	chPeer := make(chan peer.AddrInfo, sendQuantity)
+	chPeer := make(chan peer.AddrInfo, count)
 
 	c.rngMux.Lock()
-	perm := c.rng.Perm(len(cache.cachedRegs))[0:sendQuantity]
+	perm := c.rng.Perm(len(cache.cachedRecs))[0:count]
 	c.rngMux.Unlock()
 
 	permSet := make(map[int]int)
@@ -129,11 +129,11 @@ func (c *rendezvousDiscoveryClient) FindPeers(ctx context.Context, ns string, op
 		permSet[v] = i
 	}
 
-	sendLst := make([]*peer.AddrInfo, sendQuantity)
+	sendLst := make([]*peer.AddrInfo, count)
 	iter := 0
-	for k := range cache.cachedRegs {
+	for k := range cache.cachedRecs {
 		if sendIndex, ok := permSet[iter]; ok {
-			sendLst[sendIndex] = &cache.cachedRegs[k].Peer
+			sendLst[sendIndex] = &cache.cachedRecs[k].peer
 		}
 		iter++
 	}
@@ -142,7 +142,6 @@ func (c *rendezvousDiscoveryClient) FindPeers(ctx context.Context, ns string, op
 		chPeer <- *send
 	}
 
-	cache.mux.Unlock()
 	close(chPeer)
-	return chPeer, discoveryErr
+	return chPeer, err
 }

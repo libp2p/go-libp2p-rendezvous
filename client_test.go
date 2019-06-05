@@ -31,9 +31,12 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 
 	clients := getRendezvousClients(t, hosts)
 
-	err = clients[0].Register(ctx, "foo1", DefaultTTL)
+	recordTTL, err := clients[0].Register(ctx, "foo1", DefaultTTL)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if recordTTL != DefaultTTL*time.Second {
+		t.Fatalf("Expected record TTL to be %d seconds", DefaultTTL)
 	}
 
 	pi, cookie, err := clients[0].Discover(ctx, "foo1", 0, nil)
@@ -46,9 +49,12 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 	checkPeerInfo(t, pi[0], hosts[1])
 
 	for i, client := range clients[1:] {
-		err = client.Register(ctx, "foo1", DefaultTTL)
+		recordTTL, err = client.Register(ctx, "foo1", DefaultTTL)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if recordTTL != DefaultTTL*time.Second {
+			t.Fatalf("Expected record TTL to be %d seconds", DefaultTTL)
 		}
 
 		pi, cookie, err = clients[0].Discover(ctx, "foo1", 10, cookie)
@@ -98,9 +104,12 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 	}
 
 	for i, client := range clients[0:] {
-		err = client.Register(ctx, "foo1", DefaultTTL)
+		recordTTL, err := client.Register(ctx, "foo1", DefaultTTL)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if recordTTL != DefaultTTL*time.Second {
+			t.Fatalf("Expected record TTL to be %d seconds", DefaultTTL)
 		}
 
 		pi := <-ch

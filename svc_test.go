@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+	"time"
 
 	db "github.com/libp2p/go-libp2p-rendezvous/db/sqlite"
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
@@ -77,9 +78,13 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 
 	clients := getRendezvousPoints(t, hosts)
 
-	err = clients[0].Register(ctx, "foo1", 60)
+	const registerTTL = 60
+	recordTTL, err := clients[0].Register(ctx, "foo1", registerTTL)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if recordTTL != registerTTL*time.Second {
+		t.Fatalf("Expected record TTL to be %d seconds", DefaultTTL)
 	}
 
 	rrs, cookie, err := clients[0].Discover(ctx, "foo1", 10, nil)
@@ -92,9 +97,12 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 	checkHostRegistration(t, rrs[0], hosts[1])
 
 	for i, client := range clients[1:] {
-		err = client.Register(ctx, "foo1", 60)
+		recordTTL, err = client.Register(ctx, "foo1", registerTTL)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if recordTTL != registerTTL*time.Second {
+			t.Fatalf("Expected record TTL to be %d seconds", DefaultTTL)
 		}
 
 		rrs, cookie, err = clients[0].Discover(ctx, "foo1", 10, cookie)

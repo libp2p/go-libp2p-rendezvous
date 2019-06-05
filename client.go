@@ -66,7 +66,7 @@ type rendezvousClient struct {
 func (rp *rendezvousPoint) Register(ctx context.Context, ns string, ttl int) (time.Duration, error) {
 	s, err := rp.host.NewStream(ctx, rp.p, RendezvousProto)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer s.Close()
 
@@ -134,7 +134,7 @@ func registerRefresh(ctx context.Context, rz RendezvousPoint, ns string, ttl int
 			return
 		}
 
-		err := rz.Register(ctx, ns, ttl)
+		_, err := rz.Register(ctx, ns, ttl)
 		if err != nil {
 			log.Errorf("Error registering [%s]: %s", ns, err.Error())
 			errcount++

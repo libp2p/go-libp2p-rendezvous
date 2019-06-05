@@ -17,7 +17,7 @@ func getRendezvousDiscovery(hosts []host.Host) []discovery.Discovery {
 	for i, h := range hosts[1:] {
 		rp := NewRendezvousPoint(h, rendezvousPeer)
 		rng := rand.New(rand.NewSource(int64(i)))
-		clients[i] = &rendezvousDiscoveryClient{rp: rp, peerCache: sync.Map{}, rng: rng}
+		clients[i] = &rendezvousDiscovery{rp: rp, peerCache: sync.Map{}, rng: rng}
 	}
 	return clients
 }
