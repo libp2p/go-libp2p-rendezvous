@@ -6,7 +6,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"math/rand"
-	"sync"
 	"testing"
 	"time"
 )
@@ -17,7 +16,7 @@ func getRendezvousDiscovery(hosts []host.Host) []discovery.Discovery {
 	for i, h := range hosts[1:] {
 		rp := NewRendezvousPoint(h, rendezvousPeer)
 		rng := rand.New(rand.NewSource(int64(i)))
-		clients[i] = &rendezvousDiscovery{rp: rp, peerCache: sync.Map{}, rng: rng}
+		clients[i] = &rendezvousDiscovery{rp: rp, peerCache: make(map[string]*discoveryCache), rng: rng}
 	}
 	return clients
 }
