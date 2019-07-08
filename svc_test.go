@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+	"time"
 
 	db "github.com/libp2p/go-libp2p-rendezvous/db/sqlite"
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	ggio "github.com/gogo/protobuf/io"
 	bhost "github.com/libp2p/go-libp2p-blankhost"
-	host "github.com/libp2p/go-libp2p-host"
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+
+	"github.com/libp2p/go-libp2p-core/host"
+	inet "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	testutil "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
@@ -30,7 +31,7 @@ func getNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
 	var out []host.Host
 
 	for i := 0; i < n; i++ {
-		netw := testutil.GenSwarmNetwork(t, ctx)
+		netw := testutil.GenSwarm(t, ctx)
 		h := bhost.NewBlankHost(netw)
 		out = append(out, h)
 	}
@@ -77,9 +78,13 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 
 	clients := getRendezvousPoints(t, hosts)
 
-	err = clients[0].Register(ctx, "foo1", 60)
+	const registerTTL = 60
+	recordTTL, err := clients[0].Register(ctx, "foo1", registerTTL)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if recordTTL != registerTTL*time.Second {
+		t.Fatalf("Expected record TTL to be %d seconds", DefaultTTL)
 	}
 
 	rrs, cookie, err := clients[0].Discover(ctx, "foo1", 10, nil)
@@ -92,9 +97,12 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 	checkHostRegistration(t, rrs[0], hosts[1])
 
 	for i, client := range clients[1:] {
-		err = client.Register(ctx, "foo1", 60)
+		recordTTL, err = client.Register(ctx, "foo1", registerTTL)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if recordTTL != registerTTL*time.Second {
+			t.Fatalf("Expected record TTL to be %d seconds", DefaultTTL)
 		}
 
 		rrs, cookie, err = clients[0].Discover(ctx, "foo1", 10, cookie)
@@ -187,7 +195,7 @@ func TestSVCErrors(t *testing.T) {
 
 	// testable registration errors
 	res, err := doTestRequest(ctx, hosts[1], hosts[0].ID(),
-		newRegisterMessage("", pstore.PeerInfo{}, 0))
+		newRegisterMessage("", peer.AddrInfo{}, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +206,7 @@ func TestSVCErrors(t *testing.T) {
 	badns := make([]byte, 2*MaxNamespaceLength)
 	rand.Read(badns)
 	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
-		newRegisterMessage(string(badns), pstore.PeerInfo{}, 0))
+		newRegisterMessage(string(badns), peer.AddrInfo{}, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +215,7 @@ func TestSVCErrors(t *testing.T) {
 	}
 
 	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
-		newRegisterMessage("foo", pstore.PeerInfo{}, 0))
+		newRegisterMessage("foo", peer.AddrInfo{}, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +224,7 @@ func TestSVCErrors(t *testing.T) {
 	}
 
 	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
-		newRegisterMessage("foo", pstore.PeerInfo{ID: peer.ID("blah")}, 0))
+		newRegisterMessage("foo", peer.AddrInfo{ID: peer.ID("blah")}, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +238,7 @@ func TestSVCErrors(t *testing.T) {
 	}
 
 	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
-		newRegisterMessage("foo", pstore.PeerInfo{ID: p}, 0))
+		newRegisterMessage("foo", peer.AddrInfo{ID: p}, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +247,7 @@ func TestSVCErrors(t *testing.T) {
 	}
 
 	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
-		newRegisterMessage("foo", pstore.PeerInfo{ID: hosts[1].ID()}, 0))
+		newRegisterMessage("foo", peer.AddrInfo{ID: hosts[1].ID()}, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +256,7 @@ func TestSVCErrors(t *testing.T) {
 	}
 
 	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
-		newRegisterMessage("foo", pstore.PeerInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 2*MaxTTL))
+		newRegisterMessage("foo", peer.AddrInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 2*MaxTTL))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -260,7 +268,7 @@ func TestSVCErrors(t *testing.T) {
 	for i := 0; i < MaxRegistrations+1; i++ {
 		ns := fmt.Sprintf("foo%d", i)
 		res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
-			newRegisterMessage(ns, pstore.PeerInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 0))
+			newRegisterMessage(ns, peer.AddrInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 0))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -270,7 +278,7 @@ func TestSVCErrors(t *testing.T) {
 	}
 	// and now fail
 	res, err = doTestRequest(ctx, hosts[1], hosts[0].ID(),
-		newRegisterMessage("foo", pstore.PeerInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 0))
+		newRegisterMessage("foo", peer.AddrInfo{ID: hosts[1].ID(), Addrs: hosts[1].Addrs()}, 0))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,10 +9,10 @@ import (
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	ggio "github.com/gogo/protobuf/io"
-	host "github.com/libp2p/go-libp2p-host"
-	inet "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+
+	"github.com/libp2p/go-libp2p-core/host"
+	inet "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 var (
@@ -20,23 +20,23 @@ var (
 )
 
 type RendezvousPoint interface {
-	Register(ctx context.Context, ns string, ttl int) error
+	Register(ctx context.Context, ns string, ttl int) (time.Duration, error)
 	Unregister(ctx context.Context, ns string) error
 	Discover(ctx context.Context, ns string, limit int, cookie []byte) ([]Registration, []byte, error)
 	DiscoverAsync(ctx context.Context, ns string) (<-chan Registration, error)
 }
 
 type Registration struct {
-	Peer pstore.PeerInfo
+	Peer peer.AddrInfo
 	Ns   string
 	Ttl  int
 }
 
 type RendezvousClient interface {
-	Register(ctx context.Context, ns string, ttl int) error
+	Register(ctx context.Context, ns string, ttl int) (time.Duration, error)
 	Unregister(ctx context.Context, ns string) error
-	Discover(ctx context.Context, ns string, limit int, cookie []byte) ([]pstore.PeerInfo, []byte, error)
-	DiscoverAsync(ctx context.Context, ns string) (<-chan pstore.PeerInfo, error)
+	Discover(ctx context.Context, ns string, limit int, cookie []byte) ([]peer.AddrInfo, []byte, error)
+	DiscoverAsync(ctx context.Context, ns string) (<-chan peer.AddrInfo, error)
 }
 
 func NewRendezvousPoint(host host.Host, p peer.ID) RendezvousPoint {
@@ -63,52 +63,53 @@ type rendezvousClient struct {
 	rp RendezvousPoint
 }
 
-func (rp *rendezvousPoint) Register(ctx context.Context, ns string, ttl int) error {
+func (rp *rendezvousPoint) Register(ctx context.Context, ns string, ttl int) (time.Duration, error) {
 	s, err := rp.host.NewStream(ctx, rp.p, RendezvousProto)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer s.Close()
 
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
 
-	req := newRegisterMessage(ns, pstore.PeerInfo{ID: rp.host.ID(), Addrs: rp.host.Addrs()}, ttl)
+	req := newRegisterMessage(ns, peer.AddrInfo{ID: rp.host.ID(), Addrs: rp.host.Addrs()}, ttl)
 	err = w.WriteMsg(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var res pb.Message
 	err = r.ReadMsg(&res)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if res.GetType() != pb.Message_REGISTER_RESPONSE {
-		return fmt.Errorf("Unexpected response: %s", res.GetType().String())
+		return 0, fmt.Errorf("Unexpected response: %s", res.GetType().String())
 	}
 
-	status := res.GetRegisterResponse().GetStatus()
+	response := res.GetRegisterResponse()
+	status := response.GetStatus()
 	if status != pb.Message_OK {
-		return RendezvousError{Status: status, Text: res.GetRegisterResponse().GetStatusText()}
+		return 0, RendezvousError{Status: status, Text: res.GetRegisterResponse().GetStatusText()}
 	}
 
-	return nil
+	return time.Duration(*response.Ttl) * time.Second, nil
 }
 
-func (rc *rendezvousClient) Register(ctx context.Context, ns string, ttl int) error {
+func (rc *rendezvousClient) Register(ctx context.Context, ns string, ttl int) (time.Duration, error) {
 	if ttl < 120 {
-		return fmt.Errorf("registration TTL is too short")
+		return 0, fmt.Errorf("registration TTL is too short")
 	}
 
-	err := rc.rp.Register(ctx, ns, ttl)
+	returnedTTL, err := rc.rp.Register(ctx, ns, ttl)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	go registerRefresh(ctx, rc.rp, ns, ttl)
-	return nil
+	return returnedTTL, nil
 }
 
 func registerRefresh(ctx context.Context, rz RendezvousPoint, ns string, ttl int) {
@@ -133,7 +134,7 @@ func registerRefresh(ctx context.Context, rz RendezvousPoint, ns string, ttl int
 			return
 		}
 
-		err := rz.Register(ctx, ns, ttl)
+		_, err := rz.Register(ctx, ns, ttl)
 		if err != nil {
 			log.Errorf("Error registering [%s]: %s", ns, err.Error())
 			errcount++
@@ -264,13 +265,13 @@ func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Regist
 	}
 }
 
-func (rc *rendezvousClient) Discover(ctx context.Context, ns string, limit int, cookie []byte) ([]pstore.PeerInfo, []byte, error) {
+func (rc *rendezvousClient) Discover(ctx context.Context, ns string, limit int, cookie []byte) ([]peer.AddrInfo, []byte, error) {
 	regs, cookie, err := rc.rp.Discover(ctx, ns, limit, cookie)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pinfos := make([]pstore.PeerInfo, len(regs))
+	pinfos := make([]peer.AddrInfo, len(regs))
 	for i, reg := range regs {
 		pinfos[i] = reg.Peer
 	}
@@ -278,18 +279,18 @@ func (rc *rendezvousClient) Discover(ctx context.Context, ns string, limit int, 
 	return pinfos, cookie, nil
 }
 
-func (rc *rendezvousClient) DiscoverAsync(ctx context.Context, ns string) (<-chan pstore.PeerInfo, error) {
+func (rc *rendezvousClient) DiscoverAsync(ctx context.Context, ns string) (<-chan peer.AddrInfo, error) {
 	rch, err := rc.rp.DiscoverAsync(ctx, ns)
 	if err != nil {
 		return nil, err
 	}
 
-	ch := make(chan pstore.PeerInfo)
+	ch := make(chan peer.AddrInfo)
 	go discoverPeersAsync(ctx, rch, ch)
 	return ch, nil
 }
 
-func discoverPeersAsync(ctx context.Context, rch <-chan Registration, ch chan pstore.PeerInfo) {
+func discoverPeersAsync(ctx context.Context, rch <-chan Registration, ch chan peer.AddrInfo) {
 	defer close(ch)
 	for {
 		select {
