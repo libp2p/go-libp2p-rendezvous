@@ -82,7 +82,7 @@ func (c *rendezvousDiscovery) FindPeers(ctx context.Context, ns string, opts ...
 	if !ok {
 		c.peerCacheMux.Lock()
 		cache, ok = c.peerCache[ns]
-		if !ok{
+		if !ok {
 			cache = &discoveryCache{recs: make(map[peer.ID]*record)}
 			c.peerCache[ns] = cache
 		}
