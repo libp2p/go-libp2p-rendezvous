@@ -2,13 +2,14 @@ package rendezvous
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"math"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/discovery"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type rendezvousDiscovery struct {
@@ -82,7 +83,7 @@ func (c *rendezvousDiscovery) FindPeers(ctx context.Context, ns string, opts ...
 	if !ok {
 		c.peerCacheMux.Lock()
 		cache, ok = c.peerCache[ns]
-		if !ok{
+		if !ok {
 			cache = &discoveryCache{recs: make(map[peer.ID]*record)}
 			c.peerCache[ns] = cache
 		}

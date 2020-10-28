@@ -140,7 +140,7 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 			t.Fatal(err)
 		}
 		if len(rrs) != 3 {
-			t.Fatal("Expected 3 registrations")
+			t.Fatalf("Expected 3 registrations, got %d", len(rrs))
 		}
 
 		for j, rr := range rrs {
