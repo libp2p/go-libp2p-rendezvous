@@ -38,6 +38,8 @@ func NewRendezvousService(host host.Host, db db.DB, rzs ...RendezvousSync) *Rend
 }
 
 func (rz *RendezvousService) handleStream(s inet.Stream) {
+	defer s.Reset()
+
 	pid := s.Conn().RemotePeer()
 	log.Debugf("New stream from %s", pid.Pretty())
 
@@ -50,7 +52,6 @@ func (rz *RendezvousService) handleStream(s inet.Stream) {
 
 		err := r.ReadMsg(&req)
 		if err != nil {
-			s.Reset()
 			return
 		}
 
@@ -63,7 +64,6 @@ func (rz *RendezvousService) handleStream(s inet.Stream) {
 			err = w.WriteMsg(&res)
 			if err != nil {
 				log.Debugf("Error writing response: %s", err.Error())
-				s.Reset()
 				return
 			}
 
@@ -80,13 +80,11 @@ func (rz *RendezvousService) handleStream(s inet.Stream) {
 			err = w.WriteMsg(&res)
 			if err != nil {
 				log.Debugf("Error writing response: %s", err.Error())
-				s.Reset()
 				return
 			}
 
 		default:
 			log.Debugf("Unexpected message: %s", t.String())
-			s.Reset()
 			return
 		}
 	}

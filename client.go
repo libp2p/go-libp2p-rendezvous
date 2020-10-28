@@ -68,7 +68,7 @@ func (rp *rendezvousPoint) Register(ctx context.Context, ns string, ttl int) (ti
 	if err != nil {
 		return 0, err
 	}
-	defer s.Close()
+	defer s.Reset()
 
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
@@ -165,7 +165,7 @@ func (rp *rendezvousPoint) Discover(ctx context.Context, ns string, limit int, c
 	if err != nil {
 		return nil, nil, err
 	}
-	defer s.Close()
+	defer s.Reset()
 
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
 	w := ggio.NewDelimitedWriter(s)
@@ -174,7 +174,6 @@ func (rp *rendezvousPoint) Discover(ctx context.Context, ns string, limit int, c
 }
 
 func discoverQuery(ns string, limit int, cookie []byte, r ggio.Reader, w ggio.Writer) ([]Registration, []byte, error) {
-
 	req := newDiscoverMessage(ns, limit, cookie)
 	err := w.WriteMsg(req)
 	if err != nil {
@@ -222,7 +221,7 @@ func (rp *rendezvousPoint) DiscoverAsync(ctx context.Context, ns string) (<-chan
 }
 
 func discoverAsync(ctx context.Context, ns string, s inet.Stream, ch chan Registration) {
-	defer s.Close()
+	defer s.Reset()
 	defer close(ch)
 
 	r := ggio.NewDelimitedReader(s, inet.MessageSizeMax)
