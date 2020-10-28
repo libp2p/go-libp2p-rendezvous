@@ -2,13 +2,14 @@ package rendezvous
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"math"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/discovery"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type rendezvousDiscovery struct {

@@ -2,7 +2,6 @@ module github.com/libp2p/go-libp2p-rendezvous
 
 go 1.15
 
-
 require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/ipfs/go-log/v2 v2.1.1
