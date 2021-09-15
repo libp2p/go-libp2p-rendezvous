@@ -31,7 +31,7 @@ func getNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
 	var out []host.Host
 
 	for i := 0; i < n; i++ {
-		netw := testutil.GenSwarm(t, ctx)
+		netw := testutil.GenSwarm(t)
 		h := bhost.NewBlankHost(netw)
 		out = append(out, h)
 	}
@@ -232,7 +232,7 @@ func TestSVCErrors(t *testing.T) {
 		t.Fatal("expected E_INVALID_PEER_INFO")
 	}
 
-	p, err := peer.IDB58Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
+	p, err := peer.Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
 	if err != nil {
 		t.Fatal(err)
 	}
