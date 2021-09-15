@@ -318,7 +318,7 @@ func (db *DB) Discover(ns string, cookie []byte, limit int) ([]dbi.RegistrationR
 			return nil, nil, err
 		}
 
-		p, err = peer.IDB58Decode(rid)
+		p, err = peer.Decode(rid)
 		if err != nil {
 			log.Errorf("error decoding peer id: %s", err.Error())
 			continue

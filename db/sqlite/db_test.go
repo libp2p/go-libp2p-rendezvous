@@ -126,12 +126,12 @@ func TestDBRegistrationAndDiscovery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := peer.IDB58Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
+	p1, err := peer.Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	p2, err := peer.IDB58Decode("QmUkUQgxXeggyaD5Ckv8ZqfW8wHBX6cYyeiyqvVZYzq5Bi")
+	p2, err := peer.Decode("QmUkUQgxXeggyaD5Ckv8ZqfW8wHBX6cYyeiyqvVZYzq5Bi")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,12 +297,12 @@ func TestDBRegistrationAndDiscoveryMultipleNS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := peer.IDB58Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
+	p1, err := peer.Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	p2, err := peer.IDB58Decode("QmUkUQgxXeggyaD5Ckv8ZqfW8wHBX6cYyeiyqvVZYzq5Bi")
+	p2, err := peer.Decode("QmUkUQgxXeggyaD5Ckv8ZqfW8wHBX6cYyeiyqvVZYzq5Bi")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,7 +464,7 @@ func TestDBCleanup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := peer.IDB58Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
+	p1, err := peer.Decode("QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH")
 	if err != nil {
 		t.Fatal(err)
 	}
