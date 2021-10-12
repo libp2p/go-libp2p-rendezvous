@@ -10,4 +10,5 @@ require (
 	github.com/libp2p/go-libp2p-swarm v0.6.0
 	github.com/mattn/go-sqlite3 v1.14.4
 	github.com/multiformats/go-multiaddr v0.4.0
+	github.com/mutecomm/go-sqlcipher/v4 v4.4.2
 )
