@@ -3,14 +3,13 @@ package rendezvous
 import (
 	"fmt"
 
-	db "github.com/libp2p/go-libp2p-rendezvous/db"
-	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
-
 	ggio "github.com/gogo/protobuf/io"
-
 	"github.com/libp2p/go-libp2p-core/host"
 	inet "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+
+	db "github.com/libp2p/go-libp2p-rendezvous/db"
+	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 )
 
 const (
@@ -24,11 +23,6 @@ const (
 type RendezvousService struct {
 	DB  db.DB
 	rzs []RendezvousSync
-}
-
-type RendezvousSync interface {
-	Register(p peer.ID, ns string, addrs [][]byte, ttl int, counter uint64)
-	Unregister(p peer.ID, ns string)
 }
 
 func NewRendezvousService(host host.Host, db db.DB, rzs ...RendezvousSync) *RendezvousService {
@@ -59,7 +53,7 @@ func (rz *RendezvousService) handleStream(s inet.Stream) {
 		switch t {
 		case pb.Message_REGISTER:
 			r := rz.handleRegister(pid, req.GetRegister())
-			res.Type = pb.Message_REGISTER_RESPONSE.Enum()
+			res.Type = pb.Message_REGISTER_RESPONSE
 			res.RegisterResponse = r
 			err = w.WriteMsg(&res)
 			if err != nil {
@@ -75,8 +69,18 @@ func (rz *RendezvousService) handleStream(s inet.Stream) {
 
 		case pb.Message_DISCOVER:
 			r := rz.handleDiscover(pid, req.GetDiscover())
-			res.Type = pb.Message_DISCOVER_RESPONSE.Enum()
+			res.Type = pb.Message_DISCOVER_RESPONSE
 			res.DiscoverResponse = r
+			err = w.WriteMsg(&res)
+			if err != nil {
+				log.Debugf("Error writing response: %s", err.Error())
+				return
+			}
+
+		case pb.Message_DISCOVER_SUBSCRIBE:
+			r := rz.handleDiscoverSubscribe(pid, req.GetDiscoverSubscribe())
+			res.Type = pb.Message_DISCOVER_SUBSCRIBE_RESPONSE
+			res.DiscoverSubscribeResponse = r
 			err = w.WriteMsg(&res)
 			if err != nil {
 				log.Debugf("Error writing response: %s", err.Error())
@@ -230,4 +234,28 @@ func (rz *RendezvousService) handleDiscover(p peer.ID, m *pb.Message_Discover) *
 	log.Infof("discover query: %s %s -> %d", p, ns, len(regs))
 
 	return newDiscoverResponse(regs, cookie)
+}
+
+func (rz *RendezvousService) handleDiscoverSubscribe(_ peer.ID, m *pb.Message_DiscoverSubscribe) *pb.Message_DiscoverSubscribeResponse {
+	ns := m.GetNs()
+
+	for _, s := range rz.rzs {
+		rzSub, ok := s.(RendezvousSyncSubscribable)
+		if !ok {
+			continue
+		}
+
+		for _, supportedSubType := range m.GetSupportedSubscriptionTypes() {
+			if rzSub.GetServiceType() == supportedSubType {
+				sub, err := rzSub.Subscribe(ns)
+				if err != nil {
+					return newDiscoverSubscribeResponseError(pb.Message_E_INTERNAL_ERROR, "error while subscribing")
+				}
+
+				return newDiscoverSubscribeResponse(supportedSubType, sub)
+			}
+		}
+	}
+
+	return newDiscoverSubscribeResponseError(pb.Message_E_INTERNAL_ERROR, "subscription type not found")
 }

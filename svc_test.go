@@ -7,52 +7,18 @@ import (
 	"testing"
 	"time"
 
-	db "github.com/libp2p/go-libp2p-rendezvous/db/sqlite"
-	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
-
 	ggio "github.com/gogo/protobuf/io"
-	bhost "github.com/libp2p/go-libp2p-blankhost"
-
 	"github.com/libp2p/go-libp2p-core/host"
 	inet "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	testutil "github.com/libp2p/go-libp2p-swarm/testing"
+
+	db "github.com/libp2p/go-libp2p-rendezvous/db/sqlite"
+	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
+	"github.com/libp2p/go-libp2p-rendezvous/test_utils"
 )
 
 func getRendezvousHosts(t *testing.T, ctx context.Context, n int) []host.Host {
-	hosts := getNetHosts(t, ctx, n)
-	for i := 1; i < len(hosts); i++ {
-		connect(t, hosts[0], hosts[i])
-	}
-	return hosts
-}
-
-func getNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
-	var out []host.Host
-
-	for i := 0; i < n; i++ {
-		netw := testutil.GenSwarm(t)
-		h := bhost.NewBlankHost(netw)
-		out = append(out, h)
-	}
-
-	return out
-}
-
-func connect(t *testing.T, a, b host.Host) {
-	pinfo := a.Peerstore().PeerInfo(a.ID())
-	err := b.Connect(context.Background(), pinfo)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func getRendezvousPoints(t *testing.T, hosts []host.Host) []RendezvousPoint {
-	clients := make([]RendezvousPoint, len(hosts)-1)
-	for i, host := range hosts[1:] {
-		clients[i] = NewRendezvousPoint(host, hosts[0].ID())
-	}
-	return clients
+	return test_utils.GetRendezvousHosts(t, ctx, n)
 }
 
 func makeRendezvousService(ctx context.Context, host host.Host, path string) (*RendezvousService, error) {
@@ -62,6 +28,14 @@ func makeRendezvousService(ctx context.Context, host host.Host, path string) (*R
 	}
 
 	return NewRendezvousService(host, dbi), nil
+}
+
+func getRendezvousPointsTest(t *testing.T, hosts []host.Host) []RendezvousPoint {
+	clients := make([]RendezvousPoint, len(hosts)-1)
+	for i, host := range hosts[1:] {
+		clients[i] = NewRendezvousPoint(host, hosts[0].ID())
+	}
+	return clients
 }
 
 func TestSVCRegistrationAndDiscovery(t *testing.T) {
@@ -76,7 +50,7 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 	}
 	defer svc.DB.Close()
 
-	clients := getRendezvousPoints(t, hosts)
+	clients := getRendezvousPointsTest(t, hosts)
 
 	const registerTTL = 60
 	recordTTL, err := clients[0].Register(ctx, "foo1", registerTTL)
@@ -149,6 +123,10 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 	}
 
 	err = clients[1].Unregister(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	for _, client := range clients[0:] {
 		rrs, _, err = client.Discover(ctx, "foo1", 10, nil)
 		if err != nil {

@@ -2,11 +2,12 @@ package rendezvous
 
 import (
 	"context"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"testing"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-rendezvous/test_utils"
 )
 
 func getRendezvousClients(t *testing.T, hosts []host.Host) []RendezvousClient {
@@ -15,6 +16,10 @@ func getRendezvousClients(t *testing.T, hosts []host.Host) []RendezvousClient {
 		clients[i] = NewRendezvousClient(host, hosts[0].ID())
 	}
 	return clients
+}
+
+func checkPeerInfo(t *testing.T, pi peer.AddrInfo, host host.Host) bool {
+	return test_utils.CheckPeerInfo(t, pi, host, true)
 }
 
 func TestClientRegistrationAndDiscovery(t *testing.T) {
@@ -117,21 +122,4 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 	}
 
 	DiscoverAsyncInterval = 2 * time.Minute
-}
-
-func checkPeerInfo(t *testing.T, pi peer.AddrInfo, host host.Host) {
-	if pi.ID != host.ID() {
-		t.Fatal("bad registration: peer ID doesn't match host ID")
-	}
-	addrs := host.Addrs()
-	raddrs := pi.Addrs
-	if len(addrs) != len(raddrs) {
-		t.Fatal("bad registration: peer address length mismatch")
-	}
-	for i, addr := range addrs {
-		raddr := raddrs[i]
-		if !addr.Equal(raddr) {
-			t.Fatal("bad registration: peer address mismatch")
-		}
-	}
 }
