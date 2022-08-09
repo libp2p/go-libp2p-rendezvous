@@ -9,6 +9,9 @@ message Message {
     UNREGISTER = 2;
     DISCOVER = 3;
     DISCOVER_RESPONSE = 4;
+
+    DISCOVER_SUBSCRIBE = 100;
+    DISCOVER_SUBSCRIBE_RESPONSE = 101;
   }
 
   enum ResponseStatus {
@@ -57,10 +60,32 @@ message Message {
     string statusText = 4;
   }
 
+  message DiscoverSubscribe {
+    repeated string supported_subscription_types = 1;
+    string ns = 2;
+  }
+
+  message DiscoverSubscribeResponse {
+    string subscription_type = 1;
+    string subscription_details = 2;
+    ResponseStatus status = 3;
+    string statusText = 4;
+  }
+
   MessageType type = 1;
   Register register = 2;
   RegisterResponse registerResponse = 3;
   Unregister unregister = 4;
   Discover discover = 5;
   DiscoverResponse discoverResponse = 6;
+
+  DiscoverSubscribe discoverSubscribe = 100;
+  DiscoverSubscribeResponse discoverSubscribeResponse = 101;
+}
+
+message RegistrationRecord{
+    string id = 1;
+    repeated bytes addrs = 2;
+    string ns = 3;
+    int64 ttl = 4;
 }
