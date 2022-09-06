@@ -362,10 +362,13 @@ func (rp *rendezvousPoint) DiscoverSubscribe(ctx context.Context, ns string, ser
 
 		for {
 			select {
+			case result, ok := <-regCh:
+				if !ok {
+					return
+				}
+				ch <- result.Peer
 			case <-ctx.Done():
 				return
-			case result := <-regCh:
-				ch <- result.Peer
 			}
 		}
 	}()
