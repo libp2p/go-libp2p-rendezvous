@@ -11,14 +11,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	inet "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 
 	db "github.com/libp2p/go-libp2p-rendezvous/db/sqlite"
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 	"github.com/libp2p/go-libp2p-rendezvous/test_utils"
 )
 
-func getRendezvousHosts(t *testing.T, ctx context.Context, n int) []host.Host {
-	return test_utils.GetRendezvousHosts(t, ctx, n)
+func getRendezvousHosts(t *testing.T, ctx context.Context, m mocknet.Mocknet, n int) []host.Host {
+	return test_utils.GetRendezvousHosts(t, ctx, m, n)
 }
 
 func makeRendezvousService(ctx context.Context, host host.Host, path string) (*RendezvousService, error) {
@@ -42,7 +43,10 @@ func TestSVCRegistrationAndDiscovery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hosts := getRendezvousHosts(t, ctx, 5)
+	m := mocknet.New()
+	defer m.Close()
+
+	hosts := getRendezvousHosts(t, ctx, m, 5)
 
 	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {
@@ -163,7 +167,10 @@ func TestSVCErrors(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hosts := getRendezvousHosts(t, ctx, 2)
+	m := mocknet.New()
+	defer m.Close()
+
+	hosts := getRendezvousHosts(t, ctx, m, 2)
 
 	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 	rendezvous "github.com/libp2p/go-libp2p-rendezvous"
 	db "github.com/libp2p/go-libp2p-rendezvous/db/sqlite"
 	"github.com/libp2p/go-libp2p-rendezvous/test_utils"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
 func makeRendezvousService(ctx context.Context, host host.Host, path string, rzs ...rendezvous.RendezvousSync) (*rendezvous.RendezvousService, error) {
@@ -37,8 +38,11 @@ func TestFlow(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	m := mocknet.New()
+	defer m.Close()
+
 	// Instantiate server and clients
-	hosts := test_utils.GetRendezvousHosts(t, ctx, 4)
+	hosts := test_utils.GetRendezvousHosts(t, ctx, m, 4)
 
 	inmemPubSubSync, err := rendezvous.NewSyncInMemProvider(hosts[0])
 	if err != nil {

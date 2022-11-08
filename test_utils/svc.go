@@ -4,29 +4,31 @@ import (
 	"context"
 	"testing"
 
-	bhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	testutil "github.com/libp2p/go-libp2p-swarm/testing"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	"github.com/stretchr/testify/require"
 )
 
-func GetRendezvousHosts(t *testing.T, ctx context.Context, n int) []host.Host {
-	hosts := GetNetHosts(t, ctx, n)
+func GetRendezvousHosts(t *testing.T, ctx context.Context, m mocknet.Mocknet, n int) []host.Host {
+	hosts := GetNetHosts(t, ctx, m, n)
 	for i := 1; i < len(hosts); i++ {
 		Connect(t, hosts[0], hosts[i])
 	}
 	return hosts
 }
 
-func GetNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
+func GetNetHosts(t *testing.T, ctx context.Context, m mocknet.Mocknet, n int) []host.Host {
 	var out []host.Host
 
 	for i := 0; i < n; i++ {
-		netw := testutil.GenSwarm(t)
-		h := bhost.NewBlankHost(netw)
+		h, err := m.GenPeer()
+		require.NoError(t, err)
 		out = append(out, h)
 	}
 
+	err := m.LinkAll()
+	require.NoError(t, err)
 	return out
 }
 
