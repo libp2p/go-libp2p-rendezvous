@@ -2,7 +2,8 @@ package rendezvous
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/peer"
+
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type RendezvousSync interface {

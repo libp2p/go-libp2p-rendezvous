@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/host"
 	rendezvous "github.com/libp2p/go-libp2p-rendezvous"
 	db "github.com/libp2p/go-libp2p-rendezvous/db/sqlite"
 	"github.com/libp2p/go-libp2p-rendezvous/test_utils"
+	"github.com/libp2p/go-libp2p/core/host"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
