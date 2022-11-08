@@ -59,8 +59,8 @@ jobs:
           go mod tidy -v
           git --no-pager diff go.mod go.sum
           git --no-pager diff --quiet go.mod go.sum
-      - name: Run tests with race, without goleak
-        run: go test -race -covermode=atomic -coverpkg=all -coverprofile=coverage.txt -cover -v ./... -test.timeout=10m
+      - name: Run tests with race
+        run: go test -v -tags "libsqlite3" -race ./... -test.timeout=10m
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
@@ -100,8 +100,8 @@ jobs:
           go mod tidy -v
           git --no-pager diff go.mod go.sum
           git --no-pager diff --quiet go.mod go.sum
-      - name: Run tests with race, without goleak
-        run: go test -race -covermode=atomic -coverpkg=all -coverprofile=coverage.txt -cover -v ./... -test.timeout=10m
+      - name: Run tests with race
+        run: go test -v -tags "libsqlite3" -race ./... -test.timeout=10m
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:

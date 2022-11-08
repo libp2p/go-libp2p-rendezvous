@@ -1,6 +1,9 @@
 run:
   deadline: 1m
-  tests: true
+  tests: false
+  skip-files:
+    - "test/.*"
+    - "test/.*/.*"
 
 linters-settings:
   golint:
@@ -14,16 +17,16 @@ linters-settings:
     locale: US
 
 linters:
-  disable-all: false
+  disable-all: true
   enable:
     - goconst
     - misspell
-    - misspell
-    - errcheck
     - unused
     - staticcheck
     - unconvert
     - gofmt
     - goimports
-    - revive
+    # @TODO(gfanton): disable revive for now has it generate to many errors,
+    # it should be enable in a dedicated PR
+    # - revive
     - ineffassign
