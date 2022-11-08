@@ -1,0 +1,29 @@
+run:
+  deadline: 1m
+  tests: true
+
+linters-settings:
+  golint:
+    min-confidence: 0
+  maligned:
+    suggest-new: true
+  goconst:
+    min-len: 5
+    min-occurrences: 4
+  misspell:
+    locale: US
+
+linters:
+  disable-all: false
+  enable:
+    - goconst
+    - misspell
+    - misspell
+    - errcheck
+    - unused
+    - staticcheck
+    - unconvert
+    - gofmt
+    - goimports
+    - revive
+    - ineffassign
