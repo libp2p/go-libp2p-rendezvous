@@ -93,6 +93,8 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 }
 
 func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
+	DiscoverAsyncInterval = 1 * time.Second
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -108,8 +110,6 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 	defer svc.DB.Close()
 
 	clients := getRendezvousClients(t, hosts)
-
-	DiscoverAsyncInterval = 1 * time.Second
 
 	ch, err := clients[0].DiscoverAsync(ctx, "foo1")
 	if err != nil {
@@ -128,6 +128,4 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 		pi := <-ch
 		checkPeerInfo(t, pi, hosts[1+i])
 	}
-
-	DiscoverAsyncInterval = 2 * time.Minute
 }
