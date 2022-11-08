@@ -32,11 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        golang:
-          - 1.18
-          - 1.19
+        golang: ['1.18', '1.19']
+        os: ['ubuntu-latest', 'macos-latest']
     env:
-      OS: ubuntu-latest
+      OS: ${{ matrix.os }}
       GOLANG: ${{ matrix.golang }}
     steps:
       - name: Checkout
@@ -61,52 +60,3 @@ jobs:
           git --no-pager diff --quiet go.mod go.sum
       - name: Run tests with race
         run: go test -v -tags "libsqlite3" -race ./... -test.timeout=10m
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          file: ./coverage.txt
-          flags: unittests
-          env_vars: OS,GOLANG
-          name: codecov-umbrella
-          fail_ci_if_error: false
-  go-tests-on-macos:
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        golang:
-          - 1.18
-          - 1.19
-    env:
-      OS: macos-latest
-      GOLANG: ${{ matrix.golang }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@master
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.golang }}
-      - name: Cache Go modules
-        uses: actions/cache@v1
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-${{matrix.golang}}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-${{matrix.golang}}-go-
-      - name: Download modules
-        run: go mod download
-      - name: Check go.mod and go.sum
-        run: |
-          go mod tidy -v
-          git --no-pager diff go.mod go.sum
-          git --no-pager diff --quiet go.mod go.sum
-      - name: Run tests with race
-        run: go test -v -tags "libsqlite3" -race ./... -test.timeout=10m
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          file: ./coverage.txt
-          flags: unittests
-          env_vars: OS,GOLANG
-          name: codecov-umbrella
-          fail_ci_if_error: false
