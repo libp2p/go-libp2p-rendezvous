@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/discovery"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
 func getRendezvousDiscovery(hosts []host.Host) []discovery.Discovery {
@@ -49,13 +50,16 @@ func TestDiscoveryClientAdvertiseAndFindPeers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	m := mocknet.New()
+	defer m.Close()
+
 	// Define parameters
 	const namespace = "foo1"
 	const numClients = 4
 	const ttl = DefaultTTL * time.Second
 
 	// Instantiate server and clients
-	hosts := getRendezvousHosts(t, ctx, numClients+1)
+	hosts := getRendezvousHosts(t, ctx, m, numClients+1)
 
 	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {
@@ -106,8 +110,11 @@ func BaseDiscoveryClientCacheExpirationTest(t *testing.T, onlyRequestFromCache b
 	const longTTL = DefaultTTL * time.Second
 	const shortTTL = 2 * time.Second
 
+	m := mocknet.New()
+	defer m.Close()
+
 	// Instantiate server and clients
-	hosts := getRendezvousHosts(t, ctx, numBaseRegs+3)
+	hosts := getRendezvousHosts(t, ctx, m, numBaseRegs+3)
 
 	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {

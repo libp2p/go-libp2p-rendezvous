@@ -8,8 +8,8 @@ import (
 	pb "github.com/libp2p/go-libp2p-rendezvous/pb"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -27,7 +27,7 @@ type RendezvousError struct {
 }
 
 func (e RendezvousError) Error() string {
-	return fmt.Sprintf("Rendezvous error: %s (%s)", e.Text, pb.Message_ResponseStatus(e.Status).String())
+	return fmt.Sprintf("Rendezvous error: %s (%s)", e.Text, e.Status.String())
 }
 
 func NewRegisterMessage(ns string, pi peer.AddrInfo, ttl int) *pb.Message {

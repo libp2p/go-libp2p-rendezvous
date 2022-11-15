@@ -16,7 +16,7 @@ import (
 	_ "github.com/mutecomm/go-sqlcipher/v4"
 
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 var log = logging.Logger("rendezvous/db")

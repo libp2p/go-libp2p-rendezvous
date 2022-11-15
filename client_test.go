@@ -2,12 +2,14 @@ package rendezvous
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+
 	"github.com/libp2p/go-libp2p-rendezvous/test_utils"
+	"github.com/libp2p/go-libp2p/core/host"
 )
 
 func getRendezvousClients(t *testing.T, hosts []host.Host) []RendezvousClient {
@@ -26,7 +28,10 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hosts := getRendezvousHosts(t, ctx, 5)
+	m := mocknet.New()
+	defer m.Close()
+
+	hosts := getRendezvousHosts(t, ctx, m, 5)
 
 	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {
@@ -88,10 +93,15 @@ func TestClientRegistrationAndDiscovery(t *testing.T) {
 }
 
 func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
+	DiscoverAsyncInterval = 1 * time.Second
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hosts := getRendezvousHosts(t, ctx, 5)
+	m := mocknet.New()
+	defer m.Close()
+
+	hosts := getRendezvousHosts(t, ctx, m, 5)
 
 	svc, err := makeRendezvousService(ctx, hosts[0], ":memory:")
 	if err != nil {
@@ -100,8 +110,6 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 	defer svc.DB.Close()
 
 	clients := getRendezvousClients(t, hosts)
-
-	DiscoverAsyncInterval = 1 * time.Second
 
 	ch, err := clients[0].DiscoverAsync(ctx, "foo1")
 	if err != nil {
@@ -120,6 +128,4 @@ func TestClientRegistrationAndDiscoveryAsync(t *testing.T) {
 		pi := <-ch
 		checkPeerInfo(t, pi, hosts[1+i])
 	}
-
-	DiscoverAsyncInterval = 2 * time.Minute
 }
