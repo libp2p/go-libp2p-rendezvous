@@ -1,4 +1,4 @@
-module github.com/libp2p/go-libp2p-rendezvous
+module github.com/berty/go-libp2p-rendezvous
 
 go 1.18
 
